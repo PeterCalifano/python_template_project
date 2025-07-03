@@ -97,8 +97,7 @@ enable_error_code = "possibly-undefined"
 # Versioning settings with hatch and hatch-vcs
 [tool.hatch.version]
 source = "vcs"
-raw-options = { local_scheme = "no-local-version", 
-                search_parent_directories = true } 
+raw-options = { local_scheme = "no-local-version"} 
 
 # DEVNOTE: search_parent_directories = true enables the project to be in a subfolder
 
