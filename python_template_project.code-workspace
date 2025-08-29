@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../ML-repos/pyTorchAutoForge"
+		}
+	],
+	"settings": {}
+}
