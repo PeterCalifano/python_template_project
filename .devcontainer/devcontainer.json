@@ -1,0 +1,26 @@
+{
+    "name": "Python Dev Container",
+    "build": {
+        "dockerfile": "../container/Dockerfile.python"
+    },
+    "workspaceFolder": "/workspace",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+    "postCreateCommand": "pip install --no-cache-dir -e '.[dev]'",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.mypy-type-checker",
+                "charliermarsh.ruff"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.terminal.executeInFileDir": true,
+                "python.analysis.typeCheckingMode": "basic",
+                "python.analysis.autoSearchPaths": true,
+                "python.testing.pytestEnabled": true,
+                "python.testing.pytestArgs": ["tests"]
+            }
+        }
+    }
+}

@@ -1,1 +1,7 @@
-pip install sphinx sphinx-autobuild sphinx_rtd_theme sphinxcontrib-matlabdomain --break-system-packages
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+python -m pip install --upgrade pip
+python -m pip install -r "${script_dir}/requirements.txt"

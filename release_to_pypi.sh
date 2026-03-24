@@ -1,19 +1,13 @@
-conda activate autoforge
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Clear dist folder
-if [ -d "dist" ]; then
-    rm -r dist
+if [[ -z "${PYPI_TOKEN:-}" ]]; then
+  echo "PYPI_TOKEN is not set."
+  exit 1
 fi
 
-# Remove egg-info folder
-if [ -d "*.egg-info" ]; then
-    rm -r *.egg-info
-fi
-
-# Build latest wheel
+python -m pip install --upgrade pip build twine
+rm -rf dist build ./*.egg-info
 python -m build
-
-if [ -d "dist" ]; then
-    twine check dist/*
-    twine upload --repository pypi dist/* -u __token__ -p $PYPI_TOKEN --verbose
-fi
+twine check dist/*
+twine upload --repository pypi dist/* -u __token__ -p "${PYPI_TOKEN}"

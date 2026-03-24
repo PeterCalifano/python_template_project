@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-html
-doctrees
-=======
-doctrees
-html
->>>>>>> main
-sources
+_autosummary/
+_build/
+doctrees/
+html/

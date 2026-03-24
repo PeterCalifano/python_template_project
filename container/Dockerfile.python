@@ -1,19 +1,11 @@
-FROM python:3.11
+FROM python:3.11-slim
 
-# Set the working directory
-WORKDIR /devDir/
+ARG DEBIAN_FRONTEND=noninteractive
 
-# Git clone the repository
-RUN git clone <repository_url> .
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-# Enter repository 
-WORKDIR /devDir/repository
+RUN python -m pip install --upgrade pip build
 
-# Assuming there is a requirements.txt file in the repository --> Install dependencies
-#RUN pip install --no-cache-dir -r requirements.txt
-
-# Otherwise, if using new python build
-RUN python3 -m build .
-
-# Install the library
-RUN pip install --no-cache-dir dist/*.whl
+WORKDIR /workspace

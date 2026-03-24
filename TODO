@@ -1,13 +1,6 @@
-# List of TODOs
+# Template Maintenance Backlog
 
-- [ ] Add a README.md file with project description, setup instructions, and usage examples
-
-- [ ] Add default linters/code formatting tool config
-
-- [ ] Add type annotations for mypy (currently disable no-untyped-defs due to too many errors)
-
-- [ ] Automate documentation building process
-
-- [ ] Implement CI/CD automated templates
-
-- [ ] Configure template project to use hatch build for automatic versioning linked to git tags
+- [ ] Add a project initialization helper that renames the distribution and import package placeholders in one step
+- [ ] Add an example `pyproject.toml` section for console scripts
+- [ ] Add optional pre-commit configuration once a preferred hook set is settled
+- [ ] Add an example compiled extension build when the template needs more than the placeholder Cython source

@@ -1,25 +1,26 @@
-#!/bin/bash
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate autoforge
+#!/usr/bin/env bash
+set -euo pipefail
 
-while getopts "a,i:,o:,p:" opt; do
-    case $opt in
-        a) AUTOBUILD=1 ;;
-        i) INPUT="${OPTARG:-doc}" ;;
-        o) OUTPUT="${OPTARG:-test_autodoc}" ;;
-        p) PORT="${OPTARG:-8000}" ;;
-        *) echo "Invalid option"; exit 1 ;;
-    esac
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_dir="$(cd -- "${script_dir}/.." && pwd)"
+
+while getopts "a:o:p:" opt; do
+  case "$opt" in
+    a) AUTOBUILD=1 ;;
+    o) OUTPUT="${OPTARG:-doc/_build/html}" ;;
+    p) PORT="${OPTARG:-8000}" ;;
+    *) echo "Invalid option"; exit 1 ;;
+  esac
 done
 
-# Set default values if not provided
 AUTOBUILD=${AUTOBUILD:-0}
-INPUT=${INPUT:-doc}
-OUTPUT=${OUTPUT:-test_autodoc}
+OUTPUT=${OUTPUT:-doc/_build/html}
 PORT=${PORT:-8000}
 
-if [ -n "$AUTOBUILD" ]; then
-    sphinx-autobuild "$INPUT" "$OUTPUT" --port "$PORT" --open-browser
+cd "${repo_dir}"
+
+if [[ "${AUTOBUILD}" -eq 1 ]]; then
+  sphinx-autobuild doc "${OUTPUT}" --port "${PORT}"
 else
-    make html
+  sphinx-build -b html doc "${OUTPUT}"
 fi

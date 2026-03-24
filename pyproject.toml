@@ -1,119 +1,119 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling>=1.27.0", "hatch-vcs>=0.4.0"]
 build-backend = "hatchling.build"
 
 [project]
 name = "template_python_project"
-description=""
+description = "Reusable Python package template with src layout, tests, docs, and CI."
 readme = "README.md"
 requires-python = ">=3.10"
-dynamic = ["version"]
-license = {text = "MIT"}
+license = { text = "MIT" }
 authors = [
-    { name = "Pietro Califano (PC)", email = "petercalifano.gs@gmail.com" }
+    { name = "Pietro Califano", email = "petercalifano.gs@gmail.com" },
 ]
-dependencies = [
+dynamic = ["version"]
+dependencies = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
-classifiers=[
-    'Programming Language :: Python :: 3.12',
-    'Programming Language :: Python :: 3.11',
-    'Programming Language :: Python :: 3.10',
-
-    'License :: OSI Approved :: MIT License',
-    'Operating System :: POSIX :: Linux',
-]
-
-# pyproject.toml (if using PEP 621)
 [project.optional-dependencies]
+dev = [
+    "build>=1.2",
+    "mypy>=1.11",
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "twine>=5.1",
+]
+docs = [
+    "sphinx>=8.1",
+    "sphinx-autobuild>=2024.10.3",
+    "sphinx-rtd-theme>=3.0",
+]
 cuda_related = [
-    "pynvml; platform_machine == 'x86_64'", 
-    "pycuda; platform_machine == 'x86_64'", 
+    "pynvml; platform_machine == 'x86_64'",
+    "pycuda; platform_machine == 'x86_64'",
 ]
 
-[tool.setuptools.packages.find]
-include = [".", ".."]
-
-# pytest configuration
 [tool.pytest.ini_options]
-addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 --cov-append -m 'not integration' --ignore=lib/ --maxfail=10 -rf --disable-warnings"
-pythonpath = [
-  "src"
-]
+addopts = "--cov=template_python_project --cov-report=term-missing --cov-report=xml:coverage.xml --maxfail=10 -rf"
+pythonpath = ["src"]
 testpaths = ["tests"]
 python_files = ["test*.py"]
 python_functions = ["test*", "*test"]
 console_output_style = "count"
 junit_family = "xunit2"
 markers = [
-    "integration: marks as integration test",
-    "notebooks: marks as notebook test",
-    "gpu: marks as gpu test",
-    "spark: marks tests which need Spark",
-    "slow: marks tests as slow",
-    "unit: fast offline tests",
+    "integration: marks integration tests",
+    "gpu: marks tests that require optional GPU dependencies",
+    "slow: marks slow-running tests",
+    "unit: marks fast offline tests",
 ]
-# Specify folders to ignore
-norecursedirs = ["*deprecated*", "*data", "*cache", "**/site-packages", "dist", "build"]
-collect_ignore = ["**/*deprecated*"]
+norecursedirs = [".git", ".venv", "build", "dist", "doc/_build"]
+log_cli_level = "INFO"
 
-# Adding additional pytest configurations if necessary
-# For example, you could set configuration for logging
-log_cli_level = "INFO"  # Ensure log level is a string for compatibility
-log_file_level = "DEBUG" # Adding log file level for more detailed logs
-
-# Adding configuration for test coverage
 [tool.coverage.run]
 branch = true
-source = ["."]
-omit = [".*"]  # Excludes any hidden folder
+source = ["template_python_project"]
 
 [tool.coverage.report]
 show_missing = true
+skip_covered = false
 
 [tool.coverage.html]
 directory = "coverage_html_report"
 
-#mypy configuration
 [tool.mypy]
-files = [""]  
-ignore_missing_imports = true  # Ignore type errors from external libraries
-exclude = [
-    "site-packages/.*",
-    ".venv/.*",
-    "env/.*",
-    "dist/.*",
-    "build/.*",
-    "deprecated/.*",
-    "cache/.*",
-    "data/.*"
-]
+files = ["src", "tests"]
+python_version = "3.10"
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
 warn_unreachable = true
-disallow_untyped_defs = false  # Enforce type checking on all function definitions
-disallow_untyped_decorators = true  # Ensure decorators are typed
-strict = false
-cache_dir = ".mypy_cache"
-allow_redefinition = true
 warn_unused_configs = true
 show_error_codes = true
 show_column_numbers = true
 check_untyped_defs = true
-follow_imports = "normal"
 local_partial_types = true
-enable_error_code = "possibly-undefined"
+enable_error_code = ["possibly-undefined"]
+exclude = [
+    "build/.*",
+    "dist/.*",
+    "doc/_build/.*",
+]
 
-# Versioning settings with hatch and hatch-vcs
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
 [tool.hatch.version]
 source = "vcs"
-raw-options = { local_scheme = "no-local-version"} 
-
-# DEVNOTE: search_parent_directories = true enables the project to be in a subfolder
+fallback-version = "0.1.0"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "_version.py"
+version-file = "src/template_python_project/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/template_python_project"]
 
 [tool.hatch.build.targets.sdist]
-only-include = []
+include = [
+    "/src",
+    "/tests",
+    "/examples",
+    "/doc",
+    "/README.md",
+    "/LICENSE",
+]

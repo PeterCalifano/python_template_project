@@ -1,2 +1,4 @@
-#!/bin/bash
-/home/peterc/miniconda3/envs/autoforge/bin/python -m pytest "$@"
+#!/usr/bin/env bash
+set -euo pipefail
+
+python -m pytest "$@"
