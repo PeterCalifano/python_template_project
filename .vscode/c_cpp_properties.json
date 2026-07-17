@@ -3,11 +3,10 @@
     {
       "browse": {
         "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
-        "limitSymbolsToIncludedHeaders": false
+        "limitSymbolsToIncludedHeaders": true
       },
       "includePath": [
-        "/opt/ros/jazzy/include/**",
-        "/usr/include/**"
+        "/opt/ros/jazzy/include"
       ],
       "name": "ros2",
       "intelliSenseMode": "gcc-x64",
