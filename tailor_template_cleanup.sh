@@ -63,9 +63,13 @@ EOF
 }
 
 # Files and directories that exist only to develop the template itself.
+#
+# AGENTS.md and CLAUDE.md are deliberately NOT here. AGENTS.md is generic
+# guidance for developing with agents on any project built from this template,
+# and CLAUDE.md is the build and architecture reference for the resulting
+# project, whose placeholder names this script rewrites. Both are meant to be
+# inherited, so a derived project keeps them.
 template_development_paths=(
-    "AGENTS.md"
-    "CLAUDE.md"
     "CONTEXT.md"
     "TODO"
     "doc/developments"
@@ -136,6 +140,10 @@ print_plan() {
     if [[ ${KEEP_EXAMPLES} -eq 0 && -d "${ROOT_DIR}/examples" ]]; then
         echo "  - examples/            (keep with --keep-examples)"
     fi
+    echo
+    echo "Retained (inherited by the derived project):"
+    echo "  = AGENTS.md            generic agent development guidance"
+    echo "  = CLAUDE.md            build and architecture reference, renamed in place"
     if [[ ${NO_EXTENSION} -eq 1 ]]; then
         echo
         echo "Extension files to remove (--no-extension):"

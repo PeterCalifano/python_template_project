@@ -3,7 +3,7 @@
 **Do not copy this file into a project derived from this template.** It checks
 that the *template* generates and tailors correctly, which is not part of a
 derived project's contract. `tailor_template_cleanup.sh` deletes it for that
-reason, and `AGENTS.md` states the policy.
+reason, and `CLAUDE.md` states the policy.
 
 These tests are deliberately cheap: they read configuration and run the
 tailoring script against a throwaway copy. Nothing here rebuilds the project.
@@ -265,8 +265,13 @@ class TestTailoringScript:
         assert tailored["tool"]["scikit-build"]["wheel"]["packages"] == ["src/demo_pkg"]
 
         # Template-development files must be gone.
-        for removed in ("AGENTS.md", "CLAUDE.md", "CONTEXT.md", "doc/developments"):
+        for removed in ("CONTEXT.md", "TODO", "doc/developments"):
             assert not (work / removed).exists(), f"{removed} survived tailoring"
+
+        # AGENTS.md is generic agent guidance and CLAUDE.md is the derived
+        # project's own build reference, so both are inherited, not deleted.
+        for retained in ("AGENTS.md", "CLAUDE.md"):
+            assert (work / retained).is_file(), f"{retained} must survive tailoring"
 
     @pytest.mark.integration
     def test_no_extension_produces_pure_python_project(self, tmp_path: Path) -> None:

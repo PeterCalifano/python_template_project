@@ -117,6 +117,11 @@ yourself weakening one of those equivalence tests, fix the code instead.
 
 ## Development plans
 
+`CONTEXT.md` holds the working context for the change currently in flight.
+Write to it before compaction to prevent context loss, and read it together
+with this file when resuming. It is template-development state, so the
+tailoring script removes it from a derived project.
+
 Multi-step work gets a tracked plan in `doc/developments/<topic>_plan.md`:
 staged, with `- [ ]` checkboxes per step, a **Stop Rule** stating what to do
 when a stage cannot be validated, and a **Verification Log** holding real

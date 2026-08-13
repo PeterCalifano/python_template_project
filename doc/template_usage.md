@@ -37,10 +37,15 @@ This renames the package directory and updates every reference across
 file. It also removes the files that only matter while developing the template
 itself:
 
-- `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `TODO`
+- `CONTEXT.md`, `TODO`
 - `doc/developments/`
 - `tests/test_template_conformance.py`
-- `python_template_project.code-workspace`
+- `python_template_project.code-workspace` (renamed rather than deleted)
+
+`AGENTS.md` and `CLAUDE.md` are **kept**. `AGENTS.md` is generic guidance for
+developing with agents on any project built from this template, and `CLAUDE.md`
+is the build and architecture reference for the project you are creating — the
+script rewrites its placeholder names along with everything else.
 
 Extra flags:
 
