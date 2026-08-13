@@ -1,0 +1,86 @@
+# Pre-commit hooks for this template.
+#
+# Install once per clone:
+#   pip install --group lint     # or: pip install pre-commit
+#   pre-commit install
+#
+# Run against everything (what CI effectively does):
+#   pre-commit run --all-files
+#
+# Keep this list aligned with .github/workflows/ci.yml. A hook that runs here
+# but not in CI lets unformatted code through when someone commits with
+# --no-verify; a check that runs only in CI wastes a round-trip.
+
+default_language_version:
+  python: python3
+
+# Generated and vendored files are not ours to reformat.
+exclude: |
+  (?x)^(
+      src/template_python_project/_version\.py
+    | doc/_build/.*
+    | lib/.*
+  )$
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+        # Windows batch files require CRLF; a .bat rewritten to LF stops working.
+        exclude: \.bat$
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: \.bat$
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        exclude: \.bat$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.2
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        files: ^(src|tests)/
+        # mypy in pre-commit runs in its own isolated environment, so the
+        # third-party stubs it needs must be declared here explicitly.
+        additional_dependencies:
+          - numpy>=1.23
+          - pytest>=8.3
+        args: [--config-file=pyproject.toml]
+
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.24.1
+    hooks:
+      - id: validate-pyproject
+
+  # No CMake formatter is configured, deliberately.
+  #
+  # gersemi and cmake-format were both evaluated. Their style explodes compact
+  # calls across many lines -- `find_package(pybind11 CONFIG REQUIRED PATHS ...
+  # NO_DEFAULT_PATH)` becomes seven -- which works against CMake whose purpose
+  # here is to be read and copied. The CMake in this repository is
+  # hand-formatted to 4-space indentation with explanatory comments; keep it
+  # that way. A hook that always fails is worse than no hook.
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        files: \.sh$
+        # SC1091 fires on `source "$(conda info --base)/..."`, whose target does
+        # not exist until runtime. It is informational, not a defect.
+        args: [--severity=warning, --exclude=SC1091]
