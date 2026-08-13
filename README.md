@@ -1,69 +1,175 @@
 # Python Template Project
 
-Reusable Python library template with a `src` layout, Hatch-based packaging, pytest, mypy, Ruff, Sphinx docs, Docker, CI, and optional conda helpers.
+Reusable Python package template with a `src` layout, **optional pybind11
+extension for wiring external C/C++ libraries**, modern PEP-compliant packaging,
+tests, docs, containers, and CI.
 
-## Template Naming Model
+Built on [scikit-build-core](https://scikit-build-core.readthedocs.io/), so
+`pip install .` compiles the extension. There is no separate build step — and
+with one setting the same template produces a pure-Python package instead.
 
-Three names matter in this template:
+## Why this template
 
-- Repository/template slug: the repository name on disk or in Git hosting.
-- Distribution name: `[project].name` in `pyproject.toml`, used by packaging tools such as `pip install`.
-- Import package name: the directory under `src/`, which determines Python imports such as `import template_python_project`.
+| | |
+| --- | --- |
+| **Packaging** | PEP 517/518/621 (`pyproject.toml` only, no `setup.py`), PEP 735 dependency groups, PEP 639 licence expression, PEP 561 typing marker |
+| **Versioning** | Single source of truth: git tags, via setuptools-scm. The same version reaches C++, so the two can never disagree |
+| **Extensions** | pybind11 + CMake, with three documented ways to wire an external C/C++ library |
+| **Degrades gracefully** | The package imports and works with no compiler; CI proves it on every run |
+| **Quality gate** | ruff + ruff-format, strict mypy, pytest across 4 Pythons × 3 OSes, pre-commit |
+| **Distribution** | cibuildwheel for manylinux/macOS/Windows, PyPI Trusted Publishing (no stored tokens) |
 
-By default, this template uses the same value for the distribution and import package names:
-
-- Distribution name: `template_python_project`
-- Import package: `template_python_project`
-- Package path: `src/template_python_project/`
-
-When creating a real library, update all three deliberately. The import package name is the critical one for user-facing Python code.
-
-## Quick Start
-
-```bash
-python -m pip install --upgrade pip
-python -m pip install -e .[dev]
-pytest -q
-python -m build
-```
-
-Build documentation:
+## Quick start
 
 ```bash
-python -m pip install -e .[docs]
-sphinx-build -b html doc doc/_build/html
+python -m pip install --upgrade pip        # pip >= 25.1 needed for --group
+python -m pip install --group dev -e .     # installs and compiles the extension
+pytest
 ```
 
-## What To Rename For A New Project
+Check what you got:
 
-1. Change `[project].name` in `pyproject.toml` if the distribution name should change.
-2. Rename `src/template_python_project/` to the new import package name.
-3. Update all references to `template_python_project` across:
-   - `pyproject.toml`
-   - `doc/conf.py`
-   - `doc/api.rst`
-   - `tests/test_smoke.py`
-   - CI or helper scripts if they mention the package explicitly
+```bash
+python -c "import template_python_project as t; print(t.__version__, t.backend_name())"
+# 0.3.0.dev1 native
+```
 
-## Included Features
+Then run the examples:
 
-- `src`-layout packaging with Hatch and optional VCS-based versioning
-- Baseline package module and smoke test
-- `pytest` + coverage configuration
-- `ruff` and `mypy` configuration
-- Sphinx docs with API reference
-- GitHub Actions CI
-- Docker build example
-- Optional conda bootstrap helper
-- Optional Cython/GPU extension points
+```bash
+python examples/01_pure_python_usage.py
+python examples/02_pybind11_extension_usage.py
+python examples/03_accelerated_fallback.py
+./examples/04_wire_external_c_library/build_and_run.sh
+```
 
-## Optional Helpers
+## Wiring an external C/C++ library
 
-- `./run_tests.sh` runs `pytest` through the current Python interpreter.
-- `./conda_install.sh` creates or reuses a conda env and installs this package.
-- `./release_to_pypi.sh` builds artifacts and uploads them with `twine` when `PYPI_TOKEN` is set.
+The main event. Pick the pattern that matches how the library reaches your
+machine — all three are documented with worked code in
+[`cmake/HandleExternalLibs.cmake`](cmake/HandleExternalLibs.cmake):
 
-## Optional Extension Points
+| Pattern | Use when | Enable |
+| --- | --- | --- |
+| `find_package()` | Installed via apt / brew / conda / vcpkg | `-C cmake.define.TPP_USE_SYSTEM_EIGEN=ON` |
+| `FetchContent` | Pinned upstream source, built with your flags | `-C cmake.define.TPP_FETCH_FMT=ON` |
+| `add_subdirectory()` | Vendored source or git submodule under `lib/` | `-C cmake.define.TPP_USE_VENDORED_LIBS=ON` |
 
-- `src/template_python_project/cython_src/` contains an example `.pyx` file for projects that add Cython later.
-- `examples/gpu/README.md` documents where to place project-specific GPU or Jetson setup steps. Those steps are intentionally not part of the default install path.
+Each gives you a CMake **target**; linking it brings include paths, compile
+flags, transitive dependencies, and RPATH along automatically.
+
+[`examples/04_wire_external_c_library/`](examples/04_wire_external_c_library/README.md)
+is a complete working miniature: a plain C library with `extern "C"`, opaque
+status codes and out-parameters, wrapped with pybind11 so that C status codes
+arrive in Python as ordinary `ValueError`s and arrays cross the boundary with
+no copy.
+
+Full guide: [`doc/extensions.md`](doc/extensions.md).
+
+## Layout
+
+```
+├── src/
+│   ├── template_python_project/   # the importable package
+│   │   ├── _accel.py              # optional-extension shim + pure-Python fallbacks
+│   │   ├── _core.pyi              # stubs for the compiled module
+│   │   └── py.typed               # PEP 561
+│   └── cpp/
+│       ├── template_ext.{hpp,cpp} # real C++ logic (no pybind11 headers)
+│       └── bindings.cpp           # binding glue only
+├── cmake/                         # pybind11 discovery + external-library wiring
+├── lib/                           # vendored external sources / submodules
+├── examples/                      # runnable usage, incl. the C-library walkthrough
+├── tests/                         # pytest, passing with and without the extension
+├── doc/                           # Sphinx docs
+├── container/ .devcontainer/      # Python + C/C++ toolchain images
+└── CMakeLists.txt                 # driven by scikit-build-core, not run by hand
+```
+
+## Common commands
+
+```bash
+./build_ext.sh                       # editable install + compile
+./build_ext.sh --clean --verbose     # from scratch, full CMake output
+./build_ext.sh -D TPP_FETCH_FMT=ON   # turn on an external library
+
+pytest                               # full suite
+pytest -m unit                       # fast offline subset
+
+ruff check . && ruff format --check .
+mypy src tests
+pre-commit run --all-files
+
+sphinx-build -b html doc doc/_build/html -W
+python -m build && twine check --strict dist/*
+```
+
+After the first `./build_ext.sh`, changed C++ recompiles automatically on the
+next import.
+
+## Making it your project
+
+```bash
+./tailor_template_cleanup.sh --list      # preview, changes nothing
+
+./tailor_template_cleanup.sh --apply \
+    --project-name my-cool-lib \
+    --package-name my_cool_lib --yes
+```
+
+This renames the distribution and import package everywhere and removes the
+template-only files. Add `--no-extension` for a pure-Python project — it strips
+`src/cpp/`, `cmake/`, and `CMakeLists.txt`, and sets `wheel.cmake = false` so
+CMake is no longer a build dependency at all.
+
+Full guide: [`doc/template_usage.md`](doc/template_usage.md).
+
+## Dependency groups
+
+Development tooling uses PEP 735 `[dependency-groups]`, not extras:
+
+```bash
+pip install --group dev -e .      # test + lint + ext + release
+pip install --group test -e .
+pip install --group docs -e .
+```
+
+**Requires pip ≥ 25.1** (or uv). `[project.optional-dependencies]` is reserved
+for genuine runtime extras, which is why `dev` and `docs` are not there.
+
+## Versioning and release
+
+Versions come from git tags; nothing to hand-edit.
+
+```bash
+git tag -a v1.0.0 -m "Release 1.0.0"
+git push origin v1.0.0        # builds wheels and publishes
+```
+
+Publishing uses PyPI Trusted Publishing (OIDC), so no API token is stored in the
+repository. `release_to_pypi.sh` remains as a token-based local fallback.
+
+Between tags you get e.g. `0.3.0.dev1`: `release-branch-semver` bumps the minor
+on non-release branches, and the `+g<sha>` local segment is stripped because
+PyPI rejects it.
+
+## Other helpers
+
+- `./run_tests.sh` — pytest through the current interpreter
+- `./conda_install.sh` — create or reuse a conda env and install
+- `container/Dockerfile.python` — Python + C/C++ toolchain image (CUDA base
+  available via `--build-arg`)
+- `.devcontainer/` — VS Code dev container with Python and C++ tooling
+
+## Documentation
+
+| Page | Contents |
+| --- | --- |
+| [`doc/template_usage.md`](doc/template_usage.md) | Renaming, tailoring, versioning, publishing, what CI checks |
+| [`doc/extensions.md`](doc/extensions.md) | pybind11 workflow, the three wiring patterns, stubs, wheels |
+| [`examples/README.md`](examples/README.md) | What each example demonstrates |
+| [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md) | Conventions and command reference for AI agents |
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).
