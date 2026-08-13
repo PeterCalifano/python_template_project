@@ -1,0 +1,63 @@
+name: Bug report
+description: Report incorrect behaviour in the package or its build
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please run the diagnostic below and paste its output.
+        Most build issues come down to which backend is active and how the
+        package was installed, and that one command answers both.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of the diagnostic command.
+      render: shell
+      placeholder: |
+        $ python -c "import sys, platform, template_python_project as t; \
+            print(t.__version__, t.backend_name(), t.HAS_EXTENSION); \
+            print(sys.version); print(platform.platform())"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How was the package installed?
+      options:
+        - pip install (wheel from PyPI)
+        - pip install . (built from source)
+        - pip install -e . / ./build_ext.sh (editable)
+        - conda / conda_install.sh
+        - Docker or devcontainer
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what occurred instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: The smallest script or command sequence that shows the problem.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: |
+        Full traceback, or the build log. For build failures, re-run with
+        `./build_ext.sh --clean --verbose` and paste the CMake output.
+      render: shell
