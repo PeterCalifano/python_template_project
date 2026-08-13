@@ -1,25 +1,81 @@
 {
-    "name": "Python Dev Container",
+    "name": "Python + C/C++ (pybind11) Dev Container",
     "build": {
-        "dockerfile": "../container/Dockerfile.python"
+        "dockerfile": "../container/Dockerfile.python",
+        "context": "..",
+        "args": {
+            // Swap for a CUDA base and set INSTALL_PYTHON=1 for GPU work, e.g.
+            //   "BASE_IMAGE": "nvidia/cuda:12.6.0-devel-ubuntu24.04",
+            //   "INSTALL_PYTHON": "1"
+            "BASE_IMAGE": "python:3.12-slim-bookworm"
+        }
     },
     "workspaceFolder": "/workspace",
     "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-    "postCreateCommand": "pip install --no-cache-dir -e '.[dev]'",
+    "remoteUser": "vscode",
+
+    // Persist the compiler cache across container rebuilds so a rebuild does
+    // not mean recompiling every translation unit from scratch.
+    "mounts": [
+        "source=tpp-ccache,target=/home/vscode/.cache/ccache,type=volume"
+    ],
+
+    // pip is upgraded first because PEP 735 `--group` needs pip >= 25.1.
+    "postCreateCommand": "python -m pip install --upgrade pip && python -m pip install --group dev -e .",
+
+    // Report which backend is active, so a failed extension build is obvious
+    // at container start rather than at first test run.
+    "postAttachCommand": "python -c \"import template_python_project as t; print(f'{t.__version__} backend={t.backend_name()}')\" || true",
+
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.debugpy",
                 "ms-python.mypy-type-checker",
-                "charliermarsh.ruff"
+                "charliermarsh.ruff",
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.cmake-tools",
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.defaultInterpreterPath": "/opt/venv/bin/python",
                 "python.terminal.executeInFileDir": true,
+                "python.terminal.activateEnvironment": false,
                 "python.analysis.typeCheckingMode": "basic",
                 "python.analysis.autoSearchPaths": true,
+                "python.analysis.extraPaths": ["src"],
                 "python.testing.pytestEnabled": true,
-                "python.testing.pytestArgs": ["tests"]
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestArgs": ["tests"],
+
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports.ruff": "explicit"
+                    }
+                },
+
+                // CMake is driven by scikit-build-core during pip install, so
+                // the extension should not try to configure the project on its
+                // own and fight over the build directory.
+                "cmake.configureOnOpen": false,
+                "cmake.buildDirectory": "${workspaceFolder}/build/dev",
+
+                // Point IntelliSense at the compilation database that the root
+                // CMakeLists.txt emits (CMAKE_EXPORT_COMPILE_COMMANDS ON).
+                "C_Cpp.default.compileCommands": "${workspaceFolder}/build/dev/compile_commands.json",
+                "C_Cpp.default.cppStandard": "c++17",
+                "C_Cpp.default.cStandard": "c11",
+
+                "files.watcherExclude": {
+                    "**/build/**": true,
+                    "**/.venv/**": true
+                }
             }
         }
     }

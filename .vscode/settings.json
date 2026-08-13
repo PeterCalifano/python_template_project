@@ -1,6 +1,36 @@
 {
     "python.terminal.executeInFileDir": true,
-    "python.analysis.typeCheckingMode": "basic",
     "python.terminal.activateEnvironment": false,
-    "python.analysis.autoSearchPaths": true
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.extraPaths": ["src"],
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["tests"],
+
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+        }
+    },
+
+    // scikit-build-core owns the CMake configure during `pip install`, so the
+    // CMake Tools extension must not configure on its own.
+    "cmake.configureOnOpen": false,
+    "cmake.buildDirectory": "${workspaceFolder}/build/dev",
+
+    // Emitted by the root CMakeLists.txt via CMAKE_EXPORT_COMPILE_COMMANDS.
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/dev/compile_commands.json",
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.cStandard": "c11",
+
+    "files.watcherExclude": {
+        "**/build/**": true,
+        "**/.venv/**": true
+    },
+    "search.exclude": {
+        "**/build": true,
+        "**/.venv": true
+    }
 }
