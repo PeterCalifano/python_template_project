@@ -1,51 +1,170 @@
+#: Build backend.
+#
+# scikit-build-core drives CMake from inside PEP 517, so `pip install .` builds
+# the pybind11 extension with no separate build step. For a pure-Python derived
+# project set `wheel.cmake = false` below and drop `pybind11` from `requires`;
+# CMake then stops being a build dependency entirely.
 [build-system]
-requires = ["hatchling>=1.27.0", "hatch-vcs>=0.4.0"]
-build-backend = "hatchling.build"
+requires = [
+    "scikit-build-core>=0.11",
+    "pybind11>=2.13,<4",
+    "setuptools-scm>=8",
+]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "template_python_project"
-description = "Reusable Python package template with src layout, tests, docs, and CI."
+description = "Reusable Python package template with src layout, pybind11 extension support, tests, docs, and CI."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+# PEP 639: SPDX expression plus explicit licence files.
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Pietro Califano", email = "petercalifano.gs@gmail.com" },
 ]
+keywords = ["template", "packaging", "pybind11", "cmake", "scikit-build-core"]
 dynamic = ["version"]
-dependencies = []
+dependencies = [
+    "numpy>=1.23",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: C++",
+    "Topic :: Software Development :: Build Tools",
+    "Typing :: Typed",
 ]
 
+[project.urls]
+Homepage = "https://github.com/PeterCalifano/python_template_project"
+Repository = "https://github.com/PeterCalifano/python_template_project"
+Documentation = "https://petercalifano.github.io/python_template_project/"
+Issues = "https://github.com/PeterCalifano/python_template_project/issues"
+
+#: Runtime extras only.
+#
+# Anything a *user* of the installed package may need at import/run time belongs
+# here. Development tooling lives in [dependency-groups] instead — that is the
+# PEP 735 split, and it keeps `pip install pkg[dev]` from shipping linters to
+# end users. Extra names must be normalized per PEP 685 (lowercase, hyphens).
 [project.optional-dependencies]
-dev = [
-    "build>=1.2",
-    "mypy>=1.11",
+cuda = [
+    "pynvml; platform_machine == 'x86_64'",
+    "pycuda; platform_machine == 'x86_64'",
+]
+
+#: PEP 735 dependency groups (requires pip >= 25.1, or uv).
+#
+#   pip install --group dev -e .
+#
+# Groups are composable via `include-group`, so `dev` is assembled from the
+# focused groups rather than duplicating their contents.
+[dependency-groups]
+test = [
     "pytest>=8.3",
     "pytest-cov>=5.0",
+    # tomllib entered the stdlib in 3.11; the test suite reads pyproject.toml.
+    "tomli>=2.0; python_version < '3.11'",
+]
+lint = [
+    "mypy>=1.11",
     "ruff>=0.6",
-    "twine>=5.1",
+    "pre-commit>=3.8",
 ]
 docs = [
     "sphinx>=8.1",
     "sphinx-autobuild>=2024.10.3",
     "sphinx-rtd-theme>=3.0",
+    "myst-parser>=4.0",
 ]
-cuda_related = [
-    "pynvml; platform_machine == 'x86_64'",
-    "pycuda; platform_machine == 'x86_64'",
+ext = [
+    "pybind11>=2.13,<4",
+    "pybind11-stubgen>=2.5",
+    "cmake>=3.20",
+    "ninja>=1.11",
+]
+release = [
+    "build>=1.2",
+    "twine>=5.1",
+]
+dev = [
+    { include-group = "test" },
+    { include-group = "lint" },
+    { include-group = "ext" },
+    { include-group = "release" },
 ]
 
+# ---------------------------------------------------------------------------
+# Build configuration
+# ---------------------------------------------------------------------------
+
+[tool.scikit-build]
+# Pin behaviour to the versions declared in build-system.requires so a future
+# backend release cannot silently change packaging semantics.
+minimum-version = "build-system.requires"
+build-dir = "build/{wheel_tag}"
+
+# The .so produced by CMake is installed *into* this package directory by
+# src/cpp/CMakeLists.txt, so the wheel contains package + extension together.
+wheel.packages = ["src/template_python_project"]
+
+# Set to false for a pure-Python project: CMake and pybind11 then become
+# unnecessary and can also be removed from build-system.requires.
+wheel.cmake = true
+
+sdist.include = ["src/template_python_project/_version.py"]
+sdist.exclude = [
+    "build/",
+    "dist/",
+    "doc/_build/",
+    "doc/_autosummary/",
+    "**/__pycache__/",
+    ".venv/",
+    ".github/",
+    "*.code-workspace",
+]
+
+# Recompile the extension automatically when the package is imported after a
+# source change, so the edit/build/test loop needs no manual rebuild.
+editable.rebuild = true
+editable.verbose = false
+
+# Version comes from git tags via setuptools-scm, matching the previous
+# hatch-vcs behaviour (hatch-vcs is itself a setuptools-scm wrapper).
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+
+[tool.setuptools_scm]
+write_to = "src/template_python_project/_version.py"
+# Tags are of the form v1.2.3.
+tag_regex = "^v(?P<version>\\d+\\.\\d+\\.\\d+)$"
+version_scheme = "release-branch-semver"
+# PyPI rejects local version segments (the "+g<sha>" suffix), so strip it.
+local_scheme = "no-local-version"
+# Only used when building from a source tree with no git metadata.
+fallback_version = "0.0.0"
+
+# ---------------------------------------------------------------------------
+# Test, coverage, typing, lint configuration
+# ---------------------------------------------------------------------------
+
 [tool.pytest.ini_options]
-addopts = "--cov=template_python_project --cov-report=term-missing --cov-report=xml:coverage.xml --maxfail=10 -rf"
-pythonpath = ["src"]
+addopts = "--cov=template_python_project --cov-report=term-missing --cov-report=xml:coverage.xml --maxfail=10 -rf --strict-markers --strict-config"
+# ACHTUNG! Do NOT add `pythonpath = ["src"]` here.
+#
+# It is the usual advice for a pure-Python src layout, but it is wrong for a
+# package with a compiled extension: it puts the source tree ahead of the
+# installed package, and the built `_core` lives in site-packages, never in
+# src/. pytest would then import a package that can never have its extension,
+# so every native test silently skips and the suite reports green while
+# testing none of the C++. Install the package (`pip install -e .`) instead.
 testpaths = ["tests"]
 python_files = ["test*.py"]
 python_functions = ["test*", "*test"]
@@ -56,6 +175,7 @@ markers = [
     "gpu: marks tests that require optional GPU dependencies",
     "slow: marks slow-running tests",
     "unit: marks fast offline tests",
+    "extension: marks tests that require the compiled pybind11 extension",
 ]
 norecursedirs = [".git", ".venv", "build", "dist", "doc/_build"]
 log_cli_level = "INFO"
@@ -67,13 +187,23 @@ source = ["template_python_project"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@overload",
+]
 
 [tool.coverage.html]
 directory = "coverage_html_report"
 
 [tool.mypy]
 files = ["src", "tests"]
-python_version = "3.10"
+# Deliberately no `python_version` pin. Pinning it to the minimum supported
+# version makes mypy parse third-party stubs under those syntax rules, and
+# modern stubs (numpy >= 2.3) use PEP 695 syntax that only 3.12+ can parse.
+# Letting mypy follow the running interpreter, and running it across the CI
+# matrix instead, checks every supported version for real.
+strict = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
@@ -90,30 +220,87 @@ exclude = [
     "doc/_build/.*",
 ]
 
+# The compiled module is described by a hand-maintained .pyi stub. If the stub
+# is regenerated or temporarily missing, this keeps type checking usable.
+[[tool.mypy.overrides]]
+module = "template_python_project._core"
+ignore_missing_imports = true
+
+# _accel.py deliberately guards `from . import _core` with try/except so the
+# package imports without the extension. Because _core.pyi always exists,
+# mypy statically concludes the import cannot fail and marks every fallback
+# branch unreachable. That conclusion is a stub artifact, not a fact about
+# runtime -- tests/test_extension.py exercises those branches for real -- so
+# the check is disabled here and only here.
+[[tool.mypy.overrides]]
+module = "template_python_project._accel"
+warn_unreachable = false
+
+# setuptools-scm generates this file; it is not ours to type-check.
+[[tool.mypy.overrides]]
+module = "template_python_project._version"
+ignore_errors = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 src = ["src", "tests"]
+extend-exclude = ["src/template_python_project/_version.py"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
-
-[tool.hatch.version]
-source = "vcs"
-fallback-version = "0.1.0"
-
-[tool.hatch.build.hooks.vcs]
-version-file = "src/template_python_project/_version.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/template_python_project"]
-
-[tool.hatch.build.targets.sdist]
-include = [
-    "/src",
-    "/tests",
-    "/examples",
-    "/doc",
-    "/README.md",
-    "/LICENSE",
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+    "N",    # pep8-naming
+    "C4",   # flake8-comprehensions
+    "PT",   # flake8-pytest-style
+    "PTH",  # flake8-use-pathlib
+    "TID",  # flake8-tidy-imports
+    "ANN",  # flake8-annotations
+    "D",    # pydocstyle
 ]
+ignore = [
+    "D203",  # conflicts with D211
+    "D213",  # conflicts with D212
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests and examples are documentation-by-example; full docstring and
+# annotation coverage there adds noise without adding safety.
+"tests/**" = ["D", "ANN", "S101"]
+"examples/**" = ["D", "ANN", "T201"]
+"doc/conf.py" = ["D", "ANN", "INP001"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# ---------------------------------------------------------------------------
+# Binary wheel building
+# ---------------------------------------------------------------------------
+
+[tool.cibuildwheel]
+build-frontend = "build"
+# Skip targets with no practical demand or no working toolchain here.
+skip = ["pp*", "*-musllinux_i686", "cp36-*", "cp37-*", "cp38-*", "cp39-*"]
+test-command = "pytest {project}/tests"
+test-groups = ["test"]
+# Fail loudly if the wheel somehow ships without the extension.
+before-test = "python -c \"import template_python_project as p; assert p.HAS_EXTENSION\""
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64", "aarch64"]
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
