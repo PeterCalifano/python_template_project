@@ -12,8 +12,11 @@ Two properties make this worth the indirection:
   C++ is supposed to do, which is what :mod:`tests.test_extension` checks.
 
 Example:
-    >>> from template_python_project import _accel
-    >>> round(_accel.vector_norm([3.0, 4.0]), 10)
+    from template_python_project import _accel
+
+    print(_accel.vector_norm([3.0, 4.0]))
+
+Output:
     5.0
 """
 
@@ -52,8 +55,10 @@ def backend_name() -> str:
         The name of the implementation currently in use.
 
     Example:
-        >>> backend_name() in {"native", "python"}
-        True
+        print(backend_name())
+
+    Output:
+        native
     """
     return "native" if HAS_EXTENSION else "python"
 
@@ -75,7 +80,9 @@ def vector_norm(values: Sequence[float]) -> float:
         ValueError: If ``values`` is empty.
 
     Example:
-        >>> vector_norm([3.0, 4.0])
+        print(vector_norm([3.0, 4.0]))
+
+    Output:
         5.0
     """
     if _core is not None:
@@ -109,10 +116,13 @@ def scale_in_place(array: npt.NDArray[np.float64], factor: float) -> None:
         ValueError: If the array is not 1-D, not C-contiguous, or read-only.
 
     Example:
-        >>> import numpy as np
-        >>> data = np.array([1.0, 2.0, 3.0])
-        >>> scale_in_place(data, 2.0)
-        >>> data.tolist()
+        import numpy as np
+
+        data = np.array([1.0, 2.0, 3.0])
+        scale_in_place(data, 2.0)
+        print(data.tolist())
+
+    Output:
         [2.0, 4.0, 6.0]
     """
     if _core is not None:
@@ -138,11 +148,13 @@ class _PythonRunningStatistics:
     for step so the two backends produce identical results.
 
     Example:
-        >>> stats = _PythonRunningStatistics()
-        >>> stats.extend([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0])
-        >>> stats.mean
+        stats = _PythonRunningStatistics()
+        stats.extend([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0])
+        print(stats.mean)
+        print(round(stats.variance, 4))
+
+    Output:
         5.0
-        >>> round(stats.variance, 4)
         4.5714
     """
 

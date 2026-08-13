@@ -4,10 +4,13 @@ The public API is deliberately small; it exists to demonstrate the shape of a
 package that ships both pure-Python code and a compiled extension.
 
 Example:
-    >>> import template_python_project as tpp
-    >>> tpp.hello()
-    'hello from template_python_project'
-    >>> tpp.vector_norm([3.0, 4.0])
+    import template_python_project as tpp
+
+    print(tpp.hello())
+    print(tpp.vector_norm([3.0, 4.0]))
+
+Output:
+    hello from template_python_project
     5.0
 """
 

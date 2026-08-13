@@ -11,7 +11,9 @@ def hello() -> str:
         A fixed greeting identifying the package.
 
     Example:
-        >>> hello()
-        'hello from template_python_project'
+        print(hello())
+
+    Output:
+        hello from template_python_project
     """
     return "hello from template_python_project"

@@ -282,6 +282,12 @@ convention = "google"
 
 [tool.ruff.format]
 docstring-code-format = true
+# Ruff >= 0.16 also formats Python blocks inside Markdown. Documentation
+# snippets are illustrative prose, not compiled code, and AGENTS.md is a
+# hand-written document shared across machines -- reformatting it here would
+# produce spurious diffs and conflicts. Lint still applies; only the formatter
+# is scoped out.
+exclude = ["*.md"]
 
 # ---------------------------------------------------------------------------
 # Binary wheel building

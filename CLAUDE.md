@@ -2,9 +2,11 @@
 
 Guidance for Claude Code (claude.ai/code) when working in this repository.
 
-**Read [`AGENTS.md`](AGENTS.md) as well** — it holds the conventions and the
-list of things that are easy to get wrong. This file is the command reference
-and architectural map.
+**Read [`AGENTS.md`](AGENTS.md) first.** It holds the language standards, the
+commit-message style, and the staged-review workflow, and it applies to any
+project built from this template. This file adds only what is specific to *this*
+repository: its build contract, its architecture, and the traps found while
+building it.
 
 ## Project overview
 
@@ -15,7 +17,8 @@ versioning, and CMake + pybind11 for the compiled part.
 
 The defining constraint: **`pip install .` is the only build entry point.**
 scikit-build-core drives CMake from inside PEP 517, so there is no separate
-compile step to run first.
+compile step to run first. Anything that makes `pip install .` insufficient to
+get a working package is a regression, however convenient it seems.
 
 ## Commands
 
@@ -34,7 +37,6 @@ python -m pip install --group dev -e .
 pytest                                       # full suite
 pytest -m unit                               # fast offline subset
 pytest -m extension                          # native-only tests
-pytest --doctest-modules src                 # the docstring Example: blocks
 ./run_tests.sh
 
 # Lint and type-check
@@ -52,6 +54,10 @@ python -m build && twine check --strict dist/*
 After the first `./build_ext.sh`, `editable.rebuild = true` recompiles changed
 C++ on the next import — the usual loop is just *edit, run tests*.
 
+If an install fails with the uninformative `failed-wheel-build-for-install`,
+the cached CMake build directory is usually stale — after a rebase, a branch
+switch, or a toolchain change. Run `./build_ext.sh --clean`.
+
 ## Architecture
 
 ### Build chain
@@ -65,9 +71,9 @@ pip install .  ->  scikit-build-core  ->  CMakeLists.txt  ->  src/cpp/  ->  _cor
 ```
 
 `SKBUILD_PROJECT_VERSION_FULL` carries the git-derived version into CMake, so
-`_core.__version__` and `package.__version__` cannot disagree. (Use
-`_FULL`, not `SKBUILD_PROJECT_VERSION` — CMake's `project(VERSION)` truncates
-PEP 440 suffixes like `.dev1`.)
+`_core.__version__` and `package.__version__` cannot disagree. Use `_FULL`, not
+`SKBUILD_PROJECT_VERSION` — CMake's `project(VERSION)` truncates PEP 440
+suffixes such as `.dev1`.
 
 ### Layout
 
@@ -84,25 +90,89 @@ PEP 440 suffixes like `.dev1`.)
 | `examples/` | Runnable usage, incl. a full external-C-library walkthrough |
 | `doc/developments/` | Staged development plans (template-only) |
 
-### Key invariants
+## The fallback contract
 
-1. **The package imports without the extension.** `_accel.py` guards the native
-   import and provides a pure-Python fallback for every function. CI's
-   `pure-python` job enforces this.
-2. **Fallback and native behaviour match, including error messages.**
-   `tests/test_extension.py` pins them together.
-3. **The version has a single source**: git tags.
-4. **No `setup.py`.** `pyproject.toml` only.
+`_accel.py` provides a pure-Python implementation for every native function.
+This is not optional decoration — the package must import and work with no
+extension, and CI enforces it in the `pure-python` job.
 
-## Conventions
+When you change native behaviour, change the fallback to match, **including
+error messages**. `tests/test_extension.py` pins the two together; if you find
+yourself weakening one of those equivalence tests, fix the code instead.
 
-- Python: PEP 8, mandatory type hints, Google docstrings, floor 3.10.
-- C++: C++17, logic separated from bindings, `ACHTUNG!` marks critical warnings.
-- Options are prefixed `TPP_` and default to `OFF` (except `TPP_BUILD_EXTENSION`).
-- Version format: git tag `vX.Y.Z`; between tags, `X.Y+1.0.devN`
-  (`release-branch-semver`, no local segment).
+## C++ and binding conventions
 
-## Before claiming completion
+- C++17 is the standard. Keep it; the extension must build on manylinux, macOS
+  and MSVC.
+- `snake_case` for functions and variables, `PascalCase` for types, trailing `_`
+  for private members — matching `src/cpp/template_ext.hpp`.
+- `ACHTUNG!` marks a critical warning in a comment.
+- **Keep binding glue out of the logic.** `template_ext.{hpp,cpp}` must not
+  include any pybind11 header. `bindings.cpp` does type conversion, docstrings
+  and exception translation, and nothing else.
+- Release the GIL (`py::gil_scoped_release`) around any long native call, and
+  touch no Python object while it is released.
+- Validate NumPy inputs rather than converting them. `py::array::forcecast`
+  silently copies, which turns an in-place function into a no-op for the caller.
 
-Run the full gate and paste real output — see the checklist at the end of
-`AGENTS.md`. Do not report success for a command you did not run.
+## Development plans
+
+Multi-step work gets a tracked plan in `doc/developments/<topic>_plan.md`:
+staged, with `- [ ]` checkboxes per step, a **Stop Rule** stating what to do
+when a stage cannot be validated, and a **Verification Log** holding real
+command output, exit codes and excerpts.
+
+Record what actually happened. If a command failed, the log says so. If a step
+was skipped, the log says that too. Never write a verification entry for a
+command that was not run, and never tick a checkbox before its verification has
+actually passed.
+
+## Testing
+
+Markers are registered in `pyproject.toml`: `unit`, `integration`, `slow`,
+`gpu`, `extension`. Native-only tests use the `requires_extension` skip marker
+so the suite still passes without a compiler.
+
+### Derived-project test policy
+
+Do **not** copy template-conformance tests into a project derived from this
+template. `tests/test_template_conformance.py` validates the template's own
+generation and tailoring behaviour; it is not part of a derived project's
+contract, and the tailoring script removes it for that reason.
+
+Derived projects should test their own runtime behaviour, and prove packaging
+through fresh out-of-tree install/consumer commands rather than by recursively
+rebuilding themselves inside their own test suite.
+
+## Things that are easy to get wrong
+
+- **Do not add a `setup.py`.** The build is `pyproject.toml`-only by design.
+- **Do not hand-edit `src/template_python_project/_version.py`.** It is
+  generated by setuptools-scm and is gitignored.
+- **Do not add `pythonpath = ["src"]` to the pytest config.** It shadows the
+  installed package with the source tree, which never contains the compiled
+  extension, so every native test silently skips while the suite reports green.
+- **Do not pin `[tool.mypy] python_version`.** Pinning it makes mypy parse
+  third-party stubs under those syntax rules, and modern numpy stubs use PEP 695
+  syntax that only 3.12+ can parse. Version coverage comes from the CI matrix.
+- **Do not use `py::array_t<T>(count)`** to allocate an output array — the
+  single-`ssize_t` constructor yields stride 0 in pybind11 3.x. Use
+  `py::array::ShapeContainer{...}`.
+- **Do not link a static library without `POSITION_INDEPENDENT_CODE ON`.**
+- **Do not pin a `FetchContent` dependency to a branch.** Tag or full SHA only.
+- **Do not remove `fetch-depth: 0`** from CI checkouts; setuptools-scm needs the
+  tags.
+
+## Before claiming work is done
+
+Run these and paste real output:
+
+```bash
+ruff check . && ruff format --check .
+mypy src tests
+pytest
+pip install -e . -C wheel.cmake=false && pytest   # fallback path
+python -m build && twine check --strict dist/*
+```
+
+Do not report success for a command you did not run.

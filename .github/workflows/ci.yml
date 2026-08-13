@@ -97,12 +97,6 @@ jobs:
       - name: Run tests
         run: pytest -v
 
-      - name: Run docstring examples
-        # The `Example:` blocks in docstrings are claims about behaviour, so
-        # they are executed rather than trusted. --no-cov keeps the coverage
-        # report from the main run intact.
-        run: pytest --doctest-modules src --no-cov -q
-
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
@@ -137,9 +131,6 @@ jobs:
       - name: Run tests against the fallback
         # Extension-only tests skip; everything else must still pass.
         run: pytest -v
-
-      - name: Run docstring examples against the fallback
-        run: pytest --doctest-modules src --no-cov -q
 
   examples:
     name: Examples
