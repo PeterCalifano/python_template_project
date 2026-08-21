@@ -2,9 +2,6 @@
 # Turn this template into a real project: rename the distribution and import
 # package everywhere, and remove the files that only matter while developing
 # the template itself.
-#
-# Structured after ../TheJuliaPlayground/tailor_template_cleanup.sh and
-# ../cpp_cuda_template_project/tailor_template_cleanup.sh.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -14,6 +11,7 @@ ROOT_DIR="${SCRIPT_DIR}"
 
 TEMPLATE_DIST_NAME="template_python_project"
 TEMPLATE_PKG_NAME="template_python_project"
+TEMPLATE_WORKSPACE_NAME="python_template_project.code-workspace"
 
 APPLY=0
 LIST_ONLY=0
@@ -64,17 +62,14 @@ EOF
 
 # Files and directories that exist only to develop the template itself.
 #
-# AGENTS.md and CLAUDE.md are deliberately NOT here. AGENTS.md is generic
-# guidance for developing with agents on any project built from this template,
-# and CLAUDE.md is the build and architecture reference for the resulting
-# project, whose placeholder names this script rewrites. Both are meant to be
-# inherited, so a derived project keeps them.
+# AGENTS.md is generic guidance for projects created from this template.
+# CLAUDE.md documents this template's maintenance workflow and is removed.
 template_development_paths=(
+    "CLAUDE.md"
     "CONTEXT.md"
     "TODO"
     "doc/developments"
     "tests/test_template_conformance.py"
-    "python_template_project.code-workspace"
 )
 
 # Removed by --no-extension.
@@ -143,7 +138,6 @@ print_plan() {
     echo
     echo "Retained (inherited by the derived project):"
     echo "  = AGENTS.md            generic agent development guidance"
-    echo "  = CLAUDE.md            build and architecture reference, renamed in place"
     if [[ ${NO_EXTENSION} -eq 1 ]]; then
         echo
         echo "Extension files to remove (--no-extension):"
@@ -162,6 +156,7 @@ print_plan() {
     if [[ -n "${NEW_PKG_NAME}" ]]; then
         echo "  import pkg   : ${TEMPLATE_PKG_NAME} -> ${NEW_PKG_NAME}"
         echo "  directory    : src/${TEMPLATE_PKG_NAME}/ -> src/${NEW_PKG_NAME}/"
+        echo "  workspace    : ${TEMPLATE_WORKSPACE_NAME} -> ${NEW_PKG_NAME}.code-workspace"
     else
         echo "  import pkg   : (unchanged; pass --package-name to rename)"
     fi
@@ -239,12 +234,9 @@ if [[ -n "${NEW_PKG_NAME}" && "${NEW_PKG_NAME}" != "${TEMPLATE_PKG_NAME}" ]]; th
     if [[ -d "${ROOT_DIR}/src/${TEMPLATE_PKG_NAME}" ]]; then
         [[ -e "${ROOT_DIR}/src/${NEW_PKG_NAME}" ]] \
             && die "src/${NEW_PKG_NAME} already exists; refusing to overwrite."
-        # git mv preserves history when the tree is a git checkout.
-        if [[ ${DRY_RUN} -eq 0 ]] && git -C "${ROOT_DIR}" rev-parse --git-dir >/dev/null 2>&1; then
-            run git -C "${ROOT_DIR}" mv "src/${TEMPLATE_PKG_NAME}" "src/${NEW_PKG_NAME}"
-        else
-            run mv "${ROOT_DIR}/src/${TEMPLATE_PKG_NAME}" "${ROOT_DIR}/src/${NEW_PKG_NAME}"
-        fi
+        # A filesystem rename also works when files were removed first; Git
+        # detects the rename from the resulting content.
+        run mv "${ROOT_DIR}/src/${TEMPLATE_PKG_NAME}" "${ROOT_DIR}/src/${NEW_PKG_NAME}"
     fi
 fi
 
@@ -327,7 +319,7 @@ fi
 # --- 5. Rename the VS Code workspace file ----------------------------------
 
 if [[ -n "${NEW_PKG_NAME}" ]]; then
-    old_workspace_="${ROOT_DIR}/${TEMPLATE_PKG_NAME}.code-workspace"
+    old_workspace_="${ROOT_DIR}/${TEMPLATE_WORKSPACE_NAME}"
     if [[ -f "${old_workspace_}" ]]; then
         run mv "${old_workspace_}" "${ROOT_DIR}/${NEW_PKG_NAME}.code-workspace"
     fi

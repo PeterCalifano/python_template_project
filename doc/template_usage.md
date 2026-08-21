@@ -38,14 +38,13 @@ file. It also removes the files that only matter while developing the template
 itself:
 
 - `CONTEXT.md`, `TODO`
+- `CLAUDE.md` (the source template's maintenance reference)
 - `doc/developments/`
 - `tests/test_template_conformance.py`
-- `python_template_project.code-workspace` (renamed rather than deleted)
 
-`AGENTS.md` and `CLAUDE.md` are **kept**. `AGENTS.md` is generic guidance for
-developing with agents on any project built from this template, and `CLAUDE.md`
-is the build and architecture reference for the project you are creating — the
-script rewrites its placeholder names along with everything else.
+The VS Code workspace is renamed to match the import package. `AGENTS.md` is
+kept because it contains generic development guidance; `CLAUDE.md` is removed
+because it describes source-template files and maintenance workflows.
 
 Extra flags:
 

@@ -3,7 +3,7 @@
 **Do not copy this file into a project derived from this template.** It checks
 that the *template* generates and tailors correctly, which is not part of a
 derived project's contract. `tailor_template_cleanup.sh` deletes it for that
-reason, and `CLAUDE.md` states the policy.
+reason.
 
 These tests are deliberately cheap: they read configuration and run the
 tailoring script against a throwaway copy. Nothing here rebuilds the project.
@@ -29,6 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 TAILOR_SCRIPT = REPO_ROOT / "tailor_template_cleanup.sh"
 TEMPLATE_NAME = "template_python_project"
+TEMPLATE_WORKSPACE = "python_template_project.code-workspace"
 
 
 @pytest.fixture(scope="module")
@@ -229,7 +230,7 @@ class TestTailoringScript:
 
     @pytest.mark.integration
     def test_rename_leaves_no_template_references(self, tmp_path: Path) -> None:
-        work = _copy_template(tmp_path / "renamed")
+        work = _copy_template(tmp_path / "renamed", initialize_git=True)
 
         result = subprocess.run(
             [
@@ -265,17 +266,22 @@ class TestTailoringScript:
         assert tailored["tool"]["scikit-build"]["wheel"]["packages"] == ["src/demo_pkg"]
 
         # Template-development files must be gone.
-        for removed in ("CONTEXT.md", "TODO", "doc/developments"):
+        for removed in (
+            "CLAUDE.md",
+            "CONTEXT.md",
+            "TODO",
+            "doc/developments",
+            "tests/test_template_conformance.py",
+        ):
             assert not (work / removed).exists(), f"{removed} survived tailoring"
 
-        # AGENTS.md is generic agent guidance and CLAUDE.md is the derived
-        # project's own build reference, so both are inherited, not deleted.
-        for retained in ("AGENTS.md", "CLAUDE.md"):
-            assert (work / retained).is_file(), f"{retained} must survive tailoring"
+        assert (work / "AGENTS.md").is_file()
+        assert (work / "demo_pkg.code-workspace").is_file()
+        assert not (work / TEMPLATE_WORKSPACE).exists()
 
     @pytest.mark.integration
     def test_no_extension_produces_pure_python_project(self, tmp_path: Path) -> None:
-        work = _copy_template(tmp_path / "pure")
+        work = _copy_template(tmp_path / "pure", initialize_git=True)
 
         result = subprocess.run(
             [
@@ -296,12 +302,28 @@ class TestTailoringScript:
         )
         assert result.returncode == 0, result.stderr
 
-        for removed in ("src/cpp", "cmake", "CMakeLists.txt", "build_ext.sh"):
+        for removed in (
+            "src/cpp",
+            "cmake",
+            "CMakeLists.txt",
+            "build_ext.sh",
+            "src/pure_pkg/_core.pyi",
+            "tests/test_extension.py",
+            "CLAUDE.md",
+        ):
             assert not (work / removed).exists(), f"{removed} survived --no-extension"
+
+        assert (work / "pure_pkg.code-workspace").is_file()
+        assert not (work / TEMPLATE_WORKSPACE).exists()
 
         with (work / "pyproject.toml").open("rb") as handle:
             tailored = tomllib.load(handle)
         assert tailored["tool"]["scikit-build"]["wheel"]["cmake"] is False
+
+        # setuptools-scm creates this module during installation. Supply that
+        # generated boundary so this source-level check isolates the tailored
+        # pure-Python runtime without performing a nested package build.
+        (work / "src" / "pure_pkg" / "_version.py").write_text('__version__ = "0.0.0"\n')
 
         # The package must still import and work without the extension.
         result = subprocess.run(
@@ -318,8 +340,16 @@ class TestTailoringScript:
 # --- helpers ---------------------------------------------------------------
 
 
-def _copy_template(destination: Path) -> Path:
-    """Copy the repository into a throwaway directory, minus heavy artefacts."""
+def _copy_template(destination: Path, *, initialize_git: bool = False) -> Path:
+    """Copy the repository into a throwaway directory.
+
+    Args:
+        destination: Directory that will receive the template copy.
+        initialize_git: Whether to commit the copied files in a temporary Git repository.
+
+    Returns:
+        The copied template root.
+    """
     shutil.copytree(
         REPO_ROOT,
         destination,
@@ -337,6 +367,26 @@ def _copy_template(destination: Path) -> Path:
             ".pytest_cache",
         ),
     )
+
+    if initialize_git:
+        subprocess.run(["git", "init", "--quiet"], cwd=destination, check=True)
+        subprocess.run(["git", "add", "--all"], cwd=destination, check=True)
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=Template Test",
+                "-c",
+                "user.email=template-test@example.invalid",
+                "commit",
+                "--quiet",
+                "-m",
+                "Initialize fixture",
+            ],
+            cwd=destination,
+            check=True,
+        )
+
     return destination
 
 

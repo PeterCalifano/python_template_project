@@ -170,7 +170,7 @@ PyPI rejects it.
 | [`doc/template_usage.md`](doc/template_usage.md) | Renaming, tailoring, versioning, publishing, what CI checks |
 | [`doc/extensions.md`](doc/extensions.md) | pybind11 workflow, the three wiring patterns, stubs, wheels |
 | [`examples/README.md`](examples/README.md) | What each example demonstrates |
-| [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md) | Conventions and command reference for AI agents |
+| [`AGENTS.md`](AGENTS.md) | Language, review, and commit conventions inherited by tailored projects |
 
 ## Licence
 
