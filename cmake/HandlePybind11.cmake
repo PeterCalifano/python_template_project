@@ -39,8 +39,12 @@ if(NOT pybind11_FOUND)
         find_package(pybind11 CONFIG REQUIRED PATHS "${_pybind11_cmakedir}" NO_DEFAULT_PATH)
     else()
         message(FATAL_ERROR
-            "pybind11 was not found.\n"
-            "  Install it with:  pip install pybind11\n"
+            "pybind11 was not found in the active build environment.\n"
+            "  Isolated pip builds install it from [build-system].requires.\n"
+            "  For editable rebuilds, install the build dependencies in the active\n"
+            "  environment and disable build isolation:\n"
+            "    python -m pip install --group ext\n"
+            "    python -m pip install --no-build-isolation -e .\n"
             "  Or point CMake at it:  -Dpybind11_DIR=$(python -m pybind11 --cmakedir)")
     endif()
 endif()

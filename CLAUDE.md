@@ -157,9 +157,9 @@ rebuilding themselves inside their own test suite.
 - **Do not add `pythonpath = ["src"]` to the pytest config.** It shadows the
   installed package with the source tree, which never contains the compiled
   extension, so every native test silently skips while the suite reports green.
-- **Do not pin `[tool.mypy] python_version`.** Pinning it makes mypy parse
-  third-party stubs under those syntax rules, and modern numpy stubs use PEP 695
-  syntax that only 3.12+ can parse. Version coverage comes from the CI matrix.
+- **Do not pin `[tool.mypy] python_version`.** CI runs the authoritative check
+  under the minimum supported interpreter, Python 3.10; local checks follow
+  their active interpreter.
 - **Do not use `py::array_t<T>(count)`** to allocate an output array — the
   single-`ssize_t` constructor yields stride 0 in pybind11 3.x. Use
   `py::array::ShapeContainer{...}`.

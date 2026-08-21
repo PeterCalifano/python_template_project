@@ -138,8 +138,8 @@ Development tooling lives in `[dependency-groups]`, not in extras:
 
 ```bash
 pip install --group dev -e .     # everything
-pip install --group test -e .    # just pytest
-pip install --group docs -e .    # just Sphinx
+pip install --group test .       # regular consumer install + pytest
+pip install --group docs . -C wheel.cmake=false
 ```
 
 **This requires pip ≥ 25.1.** Upgrade first: `pip install --upgrade pip`.
@@ -165,7 +165,7 @@ as a token-based local fallback.
 
 | Workflow | Trigger | Checks |
 | --- | --- | --- |
-| `ci.yml` | push / PR | ruff, ruff-format, mypy; tests on 4 Pythons × 3 OSes; a pure-Python install; the examples; docs; sdist/wheel build |
+| `ci.yml` | push / PR | ruff, ruff-format, mypy on Python 3.10; regular installs on 4 Pythons × 3 OSes; an editable native rebuild; a pure-Python install; examples; docs; sdist/wheel build |
 | `wheels.yml` | `v*.*.*` tag / manual | cibuildwheel across 5 platforms, then Trusted Publishing |
 | `docs_pages.yml` | push / PR to docs | Sphinx with `-W`, then GitHub Pages deploy |
 

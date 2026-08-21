@@ -63,7 +63,7 @@ fi
 
 info "Ensuring build dependencies are present"
 "${PYTHON}" -m pip install --upgrade --quiet pip
-"${PYTHON}" -m pip install --quiet "scikit-build-core>=0.11" "pybind11>=2.13,<4" "setuptools-scm>=8"
+"${PYTHON}" -m pip install --quiet --group ext
 
 PIP_ARGS=(--no-build-isolation -e . -C "build-dir=${BUILD_DIR}")
 

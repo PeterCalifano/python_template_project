@@ -2,7 +2,7 @@
 #
 # Kept in sync with the `docs` group in pyproject.toml, for tooling such as
 # Read the Docs that expects a requirements file. Prefer:
-#     pip install --group docs -e .
+#     pip install --group docs . -C wheel.cmake=false
 sphinx>=8.1
 sphinx-autobuild>=2024.10.3
 sphinx-rtd-theme>=3.0

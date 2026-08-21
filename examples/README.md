@@ -18,7 +18,7 @@ Run them from the repository root after installing the package.
 
 ```bash
 # Pure-Python only -- no compiler needed
-pip install -e .
+pip install . -C wheel.cmake=false
 python examples/01_pure_python_usage.py
 
 # With the compiled extension

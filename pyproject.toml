@@ -86,7 +86,11 @@ docs = [
     "myst-parser>=4.0",
 ]
 ext = [
+    # Editable rebuilds run outside pip's isolated build environment, so their
+    # build requirements must also exist in the active environment.
+    "scikit-build-core>=0.11",
     "pybind11>=2.13,<4",
+    "setuptools-scm>=8",
     "pybind11-stubgen>=2.5",
     "cmake>=3.20",
     "ninja>=1.11",
@@ -198,11 +202,8 @@ directory = "coverage_html_report"
 
 [tool.mypy]
 files = ["src", "tests"]
-# Deliberately no `python_version` pin. Pinning it to the minimum supported
-# version makes mypy parse third-party stubs under those syntax rules, and
-# modern stubs (numpy >= 2.3) use PEP 695 syntax that only 3.12+ can parse.
-# Letting mypy follow the running interpreter, and running it across the CI
-# matrix instead, checks every supported version for real.
+# CI runs mypy under Python 3.10 so the authoritative check matches the minimum
+# supported runtime. Local checks follow their active interpreter.
 strict = true
 warn_unused_ignores = true
 warn_redundant_casts = true

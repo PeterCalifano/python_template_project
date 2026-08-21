@@ -130,12 +130,14 @@ Development tooling uses PEP 735 `[dependency-groups]`, not extras:
 
 ```bash
 pip install --group dev -e .      # test + lint + ext + release
-pip install --group test -e .
-pip install --group docs -e .
+pip install --group test .        # regular consumer install + tests
+pip install --group docs . -C wheel.cmake=false
 ```
 
 **Requires pip ≥ 25.1** (or uv). `[project.optional-dependencies]` is reserved
 for genuine runtime extras, which is why `dev` and `docs` are not there.
+Editable native development needs the `ext` group in the active environment;
+the `dev` group includes it, and `build_ext.sh` installs it explicitly.
 
 ## Versioning and release
 

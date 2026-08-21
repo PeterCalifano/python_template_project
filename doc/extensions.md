@@ -28,9 +28,9 @@ template_python_project/_accel.py  imports it, or falls back to pure Python
 ```
 
 The important consequence: **there is no separate build step.** `pip install .`
-compiles the extension. A user who clones the repository and runs
-`pip install -e .` gets a working compiled package, and a user who installs the
-wheel from PyPI gets the same thing precompiled.
+compiles the extension, and a wheel user gets the same thing precompiled.
+Editable auto-rebuilds run after pip's temporary isolated build environment is
+gone, so use `build_ext.sh` or install the `ext` group in the active environment.
 
 ## Everyday commands
 
@@ -43,6 +43,9 @@ pytest                               # run the suite
 
 After the first `./build_ext.sh`, `editable.rebuild = true` recompiles changed
 C++ automatically on the next import, so the usual loop is *edit, run tests*.
+The script installs the `ext` group and uses `--no-build-isolation`, keeping
+scikit-build-core, setuptools-scm, pybind11, CMake, and Ninja available for
+later rebuilds.
 
 ## Passing CMake options
 

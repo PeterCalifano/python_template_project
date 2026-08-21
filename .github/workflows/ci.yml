@@ -37,13 +37,14 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          # Match type checking to the minimum supported runtime.
+          python-version: "3.10"
           cache: pip
 
       - name: Install project and lint tooling
         run: |
           python -m pip install --upgrade pip   # PEP 735 --group needs pip >= 25.1
-          python -m pip install --group lint --group test -e .
+          python -m pip install --group lint --group test . -C wheel.cmake=false
 
       - name: Ruff lint
         run: ruff check --output-format=github .
@@ -86,7 +87,7 @@ jobs:
       - name: Install with compiled extension
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --group test -e . -v
+          python -m pip install --group test . -v
 
       - name: Confirm the extension actually built
         # Without this, a silent fallback to pure Python would let the suite
@@ -105,6 +106,43 @@ jobs:
           path: coverage.xml
           if-no-files-found: warn
 
+  # Editable auto-rebuilds happen after pip's temporary isolated build
+  # environment is gone. Keep build requirements in the active environment
+  # and verify a native source change triggers a rebuild.
+  editable-rebuild:
+    name: Editable native rebuild
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install editable development environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --group test --group ext
+          python -m pip install --no-build-isolation -e . -v
+
+      - name: Confirm initial native build
+        run: |
+          python -c "import template_python_project as t; print(t.__version__, t.backend_name()); assert t.HAS_EXTENSION, 'extension did not build'"
+
+      - name: Confirm native source change rebuilds
+        run: |
+          extension_path=$(python -c "import template_python_project._core as c; print(c.__file__)")
+          previous_mtime=$(stat -c %Y "${extension_path}")
+          sleep 1
+          touch src/cpp/template_ext.cpp
+          python -c "import template_python_project as t; print(t.__version__, t.backend_name()); assert t.HAS_EXTENSION, 'extension rebuild failed'"
+          rebuilt_mtime=$(stat -c %Y "${extension_path}")
+          test "${rebuilt_mtime}" -gt "${previous_mtime}"
+          pytest -m extension -v
+
   # The template promises the package works with no compiler. Prove it.
   pure-python:
     name: Pure-Python install (no extension)
@@ -122,7 +160,7 @@ jobs:
       - name: Install without building the extension
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --group test -e . -C wheel.cmake=false
+          python -m pip install --group test . -C wheel.cmake=false
 
       - name: Confirm the fallback path is active
         run: |
@@ -175,7 +213,7 @@ jobs:
       - name: Install docs dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --group docs -e . -C wheel.cmake=false
+          python -m pip install --group docs . -C wheel.cmake=false
 
       - name: Build documentation
         # No compiler is used here on purpose: doc/conf.py mocks the compiled
