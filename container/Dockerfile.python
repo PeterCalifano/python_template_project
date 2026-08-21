@@ -1,11 +1,90 @@
-FROM python:3.11-slim
+# Development image for a Python package that may carry a C/C++ extension.
+#
+# Build the default (CPU) image:
+#   docker build -f container/Dockerfile.python -t tpp-dev .
+#
+# Build against a CUDA base instead (for GPU work):
+#   docker build -f container/Dockerfile.python \
+#     --build-arg BASE_IMAGE=nvidia/cuda:12.6.0-devel-ubuntu24.04 \
+#     --build-arg INSTALL_PYTHON=1 \
+#     -t tpp-dev-cuda .
+#
+# GPU support is opt-in so the default image stays small and needs no NVIDIA
+# toolchain.
+
+ARG BASE_IMAGE=python:3.12-slim-bookworm
+FROM ${BASE_IMAGE}
 
 ARG DEBIAN_FRONTEND=noninteractive
+# Set to 1 when the base image does not already ship Python (e.g. CUDA bases).
+ARG INSTALL_PYTHON=0
 
+# The C/C++ toolchain needed to compile the pybind11 extension. Without these,
+# `pip install .` fails at the CMake configure step rather than falling back to
+# a pure-Python install -- so they belong in the image, not in a setup script.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
+        build-essential \
+        ca-certificates \
+        ccache \
+        cmake \
+        curl \
+        gdb \
+        git \
+        ninja-build \
+        pkg-config \
+    && if [ "${INSTALL_PYTHON}" = "1" ]; then \
+           apt-get install -y --no-install-recommends \
+               python3 python3-dev python3-pip python3-venv; \
+       fi \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --upgrade pip build
+# Ninja is dramatically faster than Make for incremental C++ builds, and ccache
+# makes a rebuild after a one-line change nearly free.
+ENV CMAKE_GENERATOR=Ninja \
+    CCACHE_DIR=/home/vscode/.cache/ccache \
+    PATH="/opt/venv/bin:${PATH}" \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
+# A non-root user, because editable installs and build caches created as root
+# leave files the host user cannot delete. Reuses UID/GID 1000 to line up with
+# the typical host account so bind-mounted files stay writable.
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=${USER_UID}
+RUN if ! getent group "${USER_GID}" >/dev/null; then groupadd --gid "${USER_GID}" "${USERNAME}"; fi \
+    && if ! id -u "${USERNAME}" >/dev/null 2>&1; then \
+           useradd --uid "${USER_UID}" --gid "${USER_GID}" -m "${USERNAME}"; \
+       fi \
+    && mkdir -p "${CCACHE_DIR}" \
+    # Own the whole cache tree, not just the ccache leaf. mkdir -p creates the
+    # intermediate /home/<user>/.cache as root, which would silently disable
+    # pip's HTTP cache for every install in the container.
+    && chown -R "${USER_UID}:${USER_GID}" "/home/${USERNAME}/.cache"
+
+# An explicit virtualenv keeps the image usable on Debian bases that mark the
+# system Python as externally managed (PEP 668), where `pip install` into the
+# system interpreter is refused.
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/python -m pip install --upgrade pip setuptools wheel \
+    && chown -R "${USER_UID}:${USER_GID}" /opt/venv
+
+# The ENV PATH above covers `docker run <image> cmd`, but a *login* shell
+# (`bash -lc`, and what most IDE terminals open) sources /etc/profile, which
+# rebuilds PATH from scratch and drops the venv. Without this, pip silently
+# installs into ~/.local against the system interpreter instead of the venv.
+RUN printf '%s\n' 'export PATH="/opt/venv/bin:$PATH"' > /etc/profile.d/10-venv.sh \
+    && chmod 0644 /etc/profile.d/10-venv.sh
+
+# pip >= 25.1 is required for PEP 735 `pip install --group`.
+RUN /opt/venv/bin/python -c "import pip, sys; \
+    sys.exit(0 if tuple(int(p) for p in pip.__version__.split('.')[:2]) >= (25, 1) else 1)" \
+    || (echo 'pip >= 25.1 is required for PEP 735 dependency groups' && exit 1)
+
+USER ${USERNAME}
 WORKDIR /workspace
+
+# Dependencies are installed by the devcontainer's postCreateCommand rather
+# than baked in, so a source change does not invalidate the toolchain layer.
+CMD ["bash"]

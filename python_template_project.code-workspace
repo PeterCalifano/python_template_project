@@ -5,12 +5,33 @@
 		}
 	],
 	"settings": {
-		"ROS2.distro": "jazzy",
-		"python.autoComplete.extraPaths": [
-			"/opt/ros/jazzy/lib/python3.12/site-packages"
-		],
 		"python.analysis.extraPaths": [
-			"/opt/ros/jazzy/lib/python3.12/site-packages"
+			"src"
+		],
+		"python.autoComplete.extraPaths": [
+			"src"
+		],
+		"python.testing.pytestEnabled": true,
+		"python.testing.pytestArgs": [
+			"tests"
+		],
+		"cmake.configureOnOpen": false,
+		"cmake.buildDirectory": "${workspaceFolder}/build/dev",
+		"C_Cpp.default.compileCommands": "${workspaceFolder}/build/dev/compile_commands.json",
+		"C_Cpp.default.cppStandard": "c++17",
+		"files.exclude": {
+			"**/__pycache__": true,
+			"**/*.egg-info": true
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-python.python",
+			"charliermarsh.ruff",
+			"ms-python.mypy-type-checker",
+			"ms-vscode.cpptools",
+			"ms-vscode.cmake-tools",
+			"tamasfe.even-better-toml"
 		]
 	}
 }

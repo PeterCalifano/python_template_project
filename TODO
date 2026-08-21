@@ -1,6 +1,23 @@
 # Template Maintenance Backlog
 
-- [ ] Add a project initialization helper that renames the distribution and import package placeholders in one step
+Completed in the scikit-build-core / pybind11 modernization
+(see `doc/developments/template_modernization_pybind11_plan.md`):
+
+- [x] Add a project initialization helper that renames the distribution and
+      import package placeholders in one step -> `tailor_template_cleanup.sh`
+- [x] Add optional pre-commit configuration -> `.pre-commit-config.yaml`
+- [x] Add an example compiled extension build -> `src/cpp/` plus
+      `examples/04_wire_external_c_library/`
+
+Open:
+
 - [ ] Add an example `pyproject.toml` section for console scripts
-- [ ] Add optional pre-commit configuration once a preferred hook set is settled
-- [ ] Add an example compiled extension build when the template needs more than the placeholder Cython source
+      (`[project.scripts]`) with a matching `__main__.py` placeholder
+- [ ] Decide whether to commit a `uv.lock` and document a uv-first workflow
+      alongside the existing pip/conda paths
+- [ ] Consider a `nanobind` variant of `src/cpp/` for projects that want
+      smaller binaries and can require C++17/Python 3.8+
+- [ ] Evaluate `abi3` / stable-ABI wheels, which would collapse the per-Python
+      dimension of the cibuildwheel matrix into a single wheel per platform
+- [ ] Verify the GitHub Pages deployment end to end once the repository has
+      Pages enabled (the workflow is written but has never run remotely)
