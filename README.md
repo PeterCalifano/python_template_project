@@ -109,6 +109,9 @@ next import.
 
 ## Making it your project
 
+Run the tailoring script from a POSIX environment: Linux or macOS directly, or
+WSL on Windows.
+
 ```bash
 ./tailor_template_cleanup.sh --list      # preview, changes nothing
 

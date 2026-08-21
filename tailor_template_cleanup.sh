@@ -27,6 +27,19 @@ warn() { printf '\033[33m[WARN]\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[31m[ERROR]\033[0m %s\n' "$*" >&2; exit 1; }
 action() { printf '\033[32m[DO]\033[0m %s\n' "$*"; }
 
+# Use one in-place editing path that works with GNU sed and BSD sed. The
+# explicit backup also preserves the original file mode.
+sed_in_place() {
+    local expression_="$1" file_="$2"
+    local backup_suffix_=".tailor-template-backup"
+    local backup_path_="${file_}${backup_suffix_}"
+
+    [[ ! -e "${backup_path_}" ]] \
+        || die "Refusing to overwrite existing backup: ${backup_path_}"
+    sed -i"${backup_suffix_}" -e "${expression_}" "${file_}"
+    rm -f -- "${backup_path_}"
+}
+
 usage() {
     cat <<'EOF'
 Usage:
@@ -107,11 +120,12 @@ grep -q "${TEMPLATE_PKG_NAME}" "${ROOT_DIR}/pyproject.toml" \
     || die "${ROOT_DIR}/pyproject.toml does not reference ${TEMPLATE_PKG_NAME}; already tailored?"
 
 validate_package_name() {
-    local name_="$1"
+    local name_="$1" lowercase_name_
     [[ "${name_}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
         || die "Import package name must be a valid Python identifier: '${name_}'"
     # PEP 8 discourages capitals, and a hyphen is outright invalid.
-    [[ "${name_}" == "${name_,,}" ]] \
+    lowercase_name_="$(printf '%s' "${name_}" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+    [[ "${name_}" == "${lowercase_name_}" ]] \
         || warn "Import package names are conventionally lowercase: '${name_}'"
 }
 
@@ -276,7 +290,7 @@ replace_in_files() {
             # Escape the replacement for sed: & and \ are special.
             local escaped_to_
             escaped_to_="$(printf '%s' "${to_}" | sed -e 's/[\\&|]/\\&/g')"
-            sed -i "s|${from_}|${escaped_to_}|g" "${file_}"
+            sed_in_place "s|${from_}|${escaped_to_}|g" "${file_}"
         fi
     done < <(collect_text_files)
 
@@ -297,7 +311,8 @@ if [[ -n "${NEW_DIST_NAME}" && "${NEW_DIST_NAME}" != "${NEW_PKG_NAME}" ]]; then
         action "(dry-run) set [project].name = ${NEW_DIST_NAME} in pyproject.toml"
     else
         # Only the [project] name field, not every occurrence.
-        sed -i -E "0,/^name = .*/s|^name = .*|name = \"${NEW_DIST_NAME}\"|" \
+        sed_in_place \
+            "1,/^name = .*/s|^name = .*|name = \"${NEW_DIST_NAME}\"|" \
             "${ROOT_DIR}/pyproject.toml"
         action "set [project].name = ${NEW_DIST_NAME}"
     fi
@@ -309,7 +324,9 @@ if [[ ${NO_EXTENSION} -eq 1 ]]; then
     if [[ ${DRY_RUN} -eq 1 ]]; then
         action "(dry-run) set wheel.cmake = false in pyproject.toml"
     else
-        sed -i 's|^wheel\.cmake = true|wheel.cmake = false|' "${ROOT_DIR}/pyproject.toml"
+        sed_in_place \
+            's|^wheel\.cmake = true|wheel.cmake = false|' \
+            "${ROOT_DIR}/pyproject.toml"
         action "set wheel.cmake = false"
         warn "You may now also remove 'pybind11' from [build-system].requires."
         warn "src/*/_accel.py still has its pure-Python fallbacks and works as-is."

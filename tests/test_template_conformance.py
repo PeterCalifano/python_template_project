@@ -11,6 +11,7 @@ tailoring script against a throwaway copy. Nothing here rebuilds the project.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -208,13 +209,15 @@ class TestContributionTemplates:
             assert heading in content
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="the tailoring script requires a POSIX shell and utilities",
+)
 class TestTailoringScript:
     """The tailoring script must be safe by default and correct when applied."""
 
     @pytest.mark.unit
     def test_script_is_executable(self) -> None:
-        import os
-
         assert TAILOR_SCRIPT.is_file()
         assert os.access(TAILOR_SCRIPT, os.X_OK), "tailor script is not executable"
 
@@ -279,6 +282,26 @@ class TestTailoringScript:
         assert "identifier" in (result.stderr + result.stdout)
 
     @pytest.mark.integration
+    def test_warns_about_uppercase_package_name(self, tmp_path: Path) -> None:
+        work = _copy_template(tmp_path / "uppercase")
+        result = subprocess.run(
+            [
+                str(work / "tailor_template_cleanup.sh"),
+                "--dry-run",
+                "--root",
+                str(work),
+                "--package-name",
+                "DemoPkg",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert "conventionally lowercase" in result.stderr
+
+    @pytest.mark.integration
     def test_rename_leaves_no_template_references(self, tmp_path: Path) -> None:
         work = _copy_template(tmp_path / "renamed", initialize_git=True)
 
@@ -328,6 +351,8 @@ class TestTailoringScript:
         assert (work / "AGENTS.md").is_file()
         assert (work / "demo_pkg.code-workspace").is_file()
         assert not (work / TEMPLATE_WORKSPACE).exists()
+        assert os.access(work / "tailor_template_cleanup.sh", os.X_OK)
+        assert not list(work.rglob("*.tailor-template-backup"))
 
     @pytest.mark.integration
     def test_no_extension_produces_pure_python_project(self, tmp_path: Path) -> None:

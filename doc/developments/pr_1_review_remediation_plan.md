@@ -4,8 +4,8 @@
 
 Address the correctness, tailoring, documentation, workflow, and contribution-template findings
 from the review of PR [#1](https://github.com/PeterCalifano/python_template_project/pull/1).
-Remote PR text updates and signed, review-gated commits were authorized. Tagging and pushing remain
-unauthorized.
+Remote PR text updates and signed, review-gated commits were authorized. The user pushed the six
+review batches; tagging remains unauthorized.
 
 ## Status Key
 
@@ -102,6 +102,19 @@ unauthorized.
 - [x] Refresh the remote PR description with final, verified results.
 - [ ] Confirm all required PR checks after an authorized commit and push.
 
+## Stage 8 - Address post-push platform failures
+
+- [x] Confirm the replacement install contract on every matrix leg: the extension builds and loads
+      on Linux, macOS, and Windows for Python 3.10-3.13.
+- [x] Trace all macOS failures to Bash 4 lowercase expansion under the runner's Bash 3.2.
+- [x] Replace Bash 4 expansion and GNU-only in-place editing with Bash 3.2 and BSD/GNU sed
+      compatible operations.
+- [x] Trace all Windows failures to native Python resolving the WSL launcher as `bash.exe`.
+- [x] Define the tailoring script as a POSIX-environment tool and skip its template-only tests on
+      native Windows; document WSL as the Windows execution path.
+- [ ] Confirm the replacement GitHub matrix after the portability fix is reviewed, committed, and
+      pushed.
+
 ## Staging and Commit Proposal
 
 Prepare one batch at a time and stop after staging it for review:
@@ -162,6 +175,10 @@ Prepare one batch at a time and stop after staging it for review:
 - **Final exact index:** exported snapshots passed 64 native tests, 60 fallback tests with four
   native skips, clean-clone pre-commit, actionlint, editable native rebuilding, all examples,
   warning-as-error docs, package builds, strict Twine checks, and sdist reinstall.
+- **First replacement CI:** run `32475100995` confirmed native installation on all 12 matrix legs.
+  Linux passed; macOS exposed Bash 3.2 incompatibilities in tailoring, and native Windows resolved
+  the WSL launcher instead of a POSIX execution environment. Static checks, editable rebuilding,
+  examples, documentation, artifacts, and the separate docs workflow passed.
 
 ## PR Description Draft
 

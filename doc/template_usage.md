@@ -22,6 +22,9 @@ may not (`my_cool_lib`). The tailoring script handles both.
 
 ## Renaming: the one-command path
 
+The tailoring script requires a POSIX shell and standard Unix utilities. Run
+it directly on Linux or macOS, or from WSL on Windows.
+
 ```bash
 ./tailor_template_cleanup.sh --list          # preview, changes nothing
 
