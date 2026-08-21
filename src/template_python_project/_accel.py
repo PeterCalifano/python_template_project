@@ -79,7 +79,7 @@ def vector_norm(values: Sequence[float]) -> float:
         values: A non-empty sequence of floats.
 
     Returns:
-        The L2 norm.
+        The L2 norm, or NaN if any input is NaN.
 
     Raises:
         ValueError: If ``values`` is empty.
@@ -99,7 +99,12 @@ def vector_norm(values: Sequence[float]) -> float:
 
     # Mirror the C++ scaled computation rather than using math.hypot, so that
     # the fallback is a faithful specification of the native behaviour.
-    max_magnitude = max(abs(value) for value in values)
+    max_magnitude = 0.0
+    for value in values:
+        if math.isnan(value):
+            return math.nan
+        max_magnitude = max(max_magnitude, abs(value))
+
     if max_magnitude == 0.0:
         return 0.0
 

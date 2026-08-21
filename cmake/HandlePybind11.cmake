@@ -113,6 +113,6 @@ function(tpp_add_extension EXTENSION_NAME)
     # DESTINATION is relative to the wheel's platlib root, so this places the
     # module inside the importable package.
     install(TARGETS ${EXTENSION_NAME}
-            LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}
-            RUNTIME DESTINATION ${SKBUILD_PROJECT_NAME})
+            LIBRARY DESTINATION "${TPP_PYTHON_PACKAGE}"
+            RUNTIME DESTINATION "${TPP_PYTHON_PACKAGE}")
 endfunction()

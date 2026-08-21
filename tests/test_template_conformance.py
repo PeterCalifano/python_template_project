@@ -144,9 +144,16 @@ class TestExtensionContract:
 
     @pytest.mark.unit
     def test_extension_installs_into_the_package(self) -> None:
-        content = (REPO_ROOT / "cmake" / "HandlePybind11.cmake").read_text()
-        # Otherwise the .so lands outside the importable package.
-        assert "DESTINATION ${SKBUILD_PROJECT_NAME}" in content
+        root_cmake = (REPO_ROOT / "CMakeLists.txt").read_text()
+        extension_cmake = (REPO_ROOT / "cmake" / "HandlePybind11.cmake").read_text()
+        source_cmake = (REPO_ROOT / "src" / "cpp" / "CMakeLists.txt").read_text()
+
+        # Distribution metadata cannot own the destination because a project
+        # may deliberately use a different import package name.
+        assert 'set(TPP_PYTHON_PACKAGE "template_python_project")' in root_cmake
+        assert 'DESTINATION "${TPP_PYTHON_PACKAGE}"' in extension_cmake
+        assert 'DESTINATION "${TPP_PYTHON_PACKAGE}"' in source_cmake
+        assert "DESTINATION ${SKBUILD_PROJECT_NAME}" not in extension_cmake + source_cmake
 
     @pytest.mark.unit
     def test_version_uses_full_pep440_string(self) -> None:
@@ -302,6 +309,32 @@ class TestTailoringScript:
         assert "conventionally lowercase" in result.stderr
 
     @pytest.mark.integration
+    def test_package_only_rename_preserves_distribution(self, tmp_path: Path) -> None:
+        work = _copy_template(tmp_path / "package-only")
+        result = subprocess.run(
+            [
+                str(work / "tailor_template_cleanup.sh"),
+                "--apply",
+                "--yes",
+                "--root",
+                str(work),
+                "--package-name",
+                "renamed_package",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
+        with (work / "pyproject.toml").open("rb") as handle:
+            tailored = tomllib.load(handle)
+
+        assert tailored["project"]["name"] == TEMPLATE_NAME
+        assert tailored["tool"]["scikit-build"]["wheel"]["packages"] == ["src/renamed_package"]
+        assert 'set(TPP_PYTHON_PACKAGE "renamed_package")' in (work / "CMakeLists.txt").read_text()
+
+    @pytest.mark.integration
     def test_rename_leaves_no_template_references(self, tmp_path: Path) -> None:
         work = _copy_template(tmp_path / "renamed", initialize_git=True)
 
@@ -313,7 +346,7 @@ class TestTailoringScript:
                 "--root",
                 str(work),
                 "--project-name",
-                "demo-pkg",
+                "demo-dist",
                 "--package-name",
                 "demo_pkg",
             ],
@@ -335,8 +368,9 @@ class TestTailoringScript:
 
         with (work / "pyproject.toml").open("rb") as handle:
             tailored = tomllib.load(handle)
-        assert tailored["project"]["name"] == "demo-pkg"
+        assert tailored["project"]["name"] == "demo-dist"
         assert tailored["tool"]["scikit-build"]["wheel"]["packages"] == ["src/demo_pkg"]
+        assert 'set(TPP_PYTHON_PACKAGE "demo_pkg")' in (work / "CMakeLists.txt").read_text()
 
         # Template-development files must be gone.
         for removed in (

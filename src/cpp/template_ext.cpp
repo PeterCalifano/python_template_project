@@ -18,6 +18,9 @@ double vector_norm(const std::vector<double>& values) {
     // which a naive sum of squares would silently get wrong.
     double max_magnitude = 0.0;
     for (const double value : values) {
+        if (std::isnan(value)) {
+            return value;
+        }
         max_magnitude = std::max(max_magnitude, std::abs(value));
     }
 

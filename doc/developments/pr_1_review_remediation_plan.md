@@ -112,30 +112,47 @@ review batches; tagging remains unauthorized.
 - [x] Trace all Windows failures to native Python resolving the WSL launcher as `bash.exe`.
 - [x] Define the tailoring script as a POSIX-environment tool and skip its template-only tests on
       native Windows; document WSL as the Windows execution path.
-- [ ] Confirm the replacement GitHub matrix after the portability fix is reviewed, committed, and
-      pushed.
+- [ ] Confirm the replacement GitHub matrix after the committed portability fix is pushed.
+
+## Stage 9 - Address the second PR review
+
+- [x] Fetch the three new authoritative review threads against commit `98e52bf`.
+- [x] Confirm scikit-build-core normalizes distribution separators, but arbitrary distinct
+      distribution and import names still require an explicit package destination.
+- [x] Install both the native module and its type stub under one CMake import-package variable.
+- [x] Preserve `[project].name` when tailoring changes only the import package.
+- [x] Propagate NaN consistently through native and Python norm implementations.
+- [x] Add package-only tailoring, distinct-name CMake, derived-wheel, and NaN regression coverage.
+- [ ] Reply to or resolve the new GitHub threads after explicit remote-review authorization.
+- [ ] Confirm the new review corrections in GitHub CI after an authorized commit and push.
 
 ## Staging and Commit Proposal
 
 Prepare one batch at a time and stop after staging it for review:
 
 1. **Workspace hygiene** - `.gitignore` and cpptools database location.
-   Subject: `Keep VS Code browse data outside the repository`
+   Subject: `Keep VS Code browse data outside the repository (Codex)`
 2. **CI installation contracts** - regular matrix installs, editable rebuild, dependency ownership,
    CMake diagnostics, dependent install docs, and runner labels.
-   Subject: `[BUGFIX] Separate consumer and editable extension checks`
+   Subject: `[BUGFIX] Separate consumer and editable extension checks (Codex)`
 3. **PR review corrections (mixed)** - native array and import failure contracts plus the small
    Conda dependency-group correction reported by the same review.
-   Subject: `[BUGFIX] Address extension and Conda review failures`
+   Subject: `[BUGFIX] Address extension and Conda review failures (Codex)`
 4. **Tailoring correctness** - filesystem rename, workspace preservation, initialized-Git tests,
    and derived guidance policy.
-   Subject: `[BUGFIX] Repair tailoring in derived Git projects`
+   Subject: `[BUGFIX] Repair tailoring in derived Git projects (Codex)`
 5. **Documentation and verification cleanup** - backend example, mypy/Ruff policy, fallback
    verification, and simplified troubleshooting guidance.
-   Subject: `Align guidance with verified project behavior`
+   Subject: `Align guidance with verified project behavior (Codex)`
 6. **Contribution templates and review record** - repository-specific issue/PR templates,
    conformance checks, test dependencies, and this plan.
-   Subject: `Align contribution templates with the Python project`
+   Subject: `Align contribution templates with the Python project (Codex)`
+7. **Cross-platform tailoring checks** - Bash 3.2 and BSD sed compatibility, the native-Windows
+   POSIX boundary, dependent tests, and post-push diagnosis.
+   Subject: `[BUGFIX] Make tailoring checks portable across CI (Codex)`
+8. **Second PR review corrections (mixed)** - explicit import-package installation, package-only
+   distribution preservation, NaN parity, and their dependent tests and CI check.
+   Subject: `[BUGFIX] Address derived package and NaN reviews (Codex)`
 
 ## Verification Log
 
@@ -179,6 +196,10 @@ Prepare one batch at a time and stop after staging it for review:
   Linux passed; macOS exposed Bash 3.2 incompatibilities in tailoring, and native Windows resolved
   the WSL launcher instead of a POSIX execution environment. Static checks, editable rebuilding,
   examples, documentation, artifacts, and the separate docs workflow passed.
+- **Second review corrections:** a single-worker native rebuild passed 34 extension tests and the
+  full 70-test suite. An isolated `demo-dist` / `demo_pkg` wheel built with one worker, imported the
+  native backend, and propagated NaN. The 28 tailoring checks, pre-commit, and actionlint 1.7.12
+  passed.
 
 ## PR Description Draft
 
@@ -196,11 +217,12 @@ extension failure handling, tailoring, documentation, and contribution templates
 - Add the typed pybind11 extension, equivalent Python fallback, external-library examples, and
   cross-platform package, wheel, documentation, and release workflows.
 - Enforce native array and import-error contracts, repair Git-based tailoring, remove template-only
-  inherited guidance, and add repository-specific issue and pull-request templates.
+  inherited guidance, keep native artifacts under the import package, propagate NaN consistently,
+  and add repository-specific issue and pull-request templates.
 
 ## Testing / Validation
 
-- Fresh native install: 64 tests passed with `HAS_EXTENSION is True`.
+- Current native suite: 70 tests passed after a single-worker extension rebuild.
 - Fresh editable install: the extension rebuilt after a native source change; four native tests
   passed.
 - Fresh fallback install: 60 tests passed and four native tests skipped after asserting
@@ -208,13 +230,15 @@ extension failure handling, tailoring, documentation, and contribution templates
 - Ruff, Ruff format, mypy on Python 3.10, Sphinx with warnings as errors, all four examples,
   clean-clone pre-commit, actionlint, package builds, strict Twine checks, and sdist reinstall
   passed.
-- Template conformance: 26 tests passed, including standard and pure-Python tailoring in temporary
-  Git repositories and contribution-form validation.
+- Template conformance: 28 tests passed, including package-only, standard, and pure-Python
+  tailoring in temporary Git repositories and contribution-form validation.
+- A `demo-dist` wheel with import package `demo_pkg` built with one worker, loaded the native
+  backend, and propagated NaN.
 
 ## Notes For Reviewers
 
 - Review the regular install, editable rebuild, fallback, extension failure, and derived-project
   tailoring contracts separately.
 - Python 3.10 remains the minimum. PEP 735 dependency groups require pip 25.1 or newer.
-- Cross-platform replacement jobs remain pending until these local fixes are committed and pushed.
+- Replacement jobs for the post-push portability and review corrections remain pending.
 ```

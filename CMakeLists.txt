@@ -23,6 +23,11 @@ if(NOT DEFINED SKBUILD_PROJECT_VERSION)
     set(SKBUILD_PROJECT_VERSION "0.0.0")
 endif()
 
+# The distribution name and Python import package may differ. The tailoring
+# script rewrites this literal to the requested import name, while
+# SKBUILD_PROJECT_NAME continues to own distribution metadata.
+set(TPP_PYTHON_PACKAGE "template_python_project")
+
 project(
     ${SKBUILD_PROJECT_NAME}
     VERSION ${SKBUILD_PROJECT_VERSION}

@@ -21,6 +21,7 @@ NO_EXTENSION=0
 KEEP_EXAMPLES=0
 NEW_DIST_NAME=""
 NEW_PKG_NAME=""
+TARGET_DIST_NAME=""
 
 info() { printf '\033[34m[INFO]\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m[WARN]\033[0m %s\n' "$*" >&2; }
@@ -304,17 +305,19 @@ if [[ -n "${NEW_PKG_NAME}" ]]; then
     replace_in_files "${TEMPLATE_PKG_NAME}" "${NEW_PKG_NAME}"
 fi
 
-# The distribution name may differ from the import name (hyphens). Only rewrite
-# it if it is still distinguishable after the package rename above.
-if [[ -n "${NEW_DIST_NAME}" && "${NEW_DIST_NAME}" != "${NEW_PKG_NAME}" ]]; then
+# Package replacement may also rewrite [project].name when the template starts
+# with matching distribution and import names. Set the requested distribution
+# explicitly, or restore the original when only the import package changes.
+if [[ -n "${NEW_DIST_NAME}" || -n "${NEW_PKG_NAME}" ]]; then
+    TARGET_DIST_NAME="${NEW_DIST_NAME:-${TEMPLATE_DIST_NAME}}"
     if [[ ${DRY_RUN} -eq 1 ]]; then
-        action "(dry-run) set [project].name = ${NEW_DIST_NAME} in pyproject.toml"
+        action "(dry-run) set [project].name = ${TARGET_DIST_NAME} in pyproject.toml"
     else
         # Only the [project] name field, not every occurrence.
         sed_in_place \
-            "1,/^name = .*/s|^name = .*|name = \"${NEW_DIST_NAME}\"|" \
+            "1,/^name = .*/s|^name = .*|name = \"${TARGET_DIST_NAME}\"|" \
             "${ROOT_DIR}/pyproject.toml"
-        action "set [project].name = ${NEW_DIST_NAME}"
+        action "set [project].name = ${TARGET_DIST_NAME}"
     fi
 fi
 

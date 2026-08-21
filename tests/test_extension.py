@@ -34,6 +34,12 @@ requires_extension = pytest.mark.skipif(
     reason="compiled extension not available in this build",
 )
 
+_NAN_NORM_CASES: tuple[tuple[float, ...], ...] = (
+    (math.nan,),
+    (1.0, math.nan),
+    (math.nan, 1.0),
+)
+
 
 class TestBackendDiscovery:
     """The shim must report honestly which implementation is in use."""
@@ -86,6 +92,11 @@ class TestVectorNorm:
     def test_survives_underflow_prone_magnitudes(self) -> None:
         tiny = 1e-200
         assert tpp.vector_norm([tiny, tiny]) == pytest.approx(tiny * math.sqrt(2.0))
+
+    @pytest.mark.unit
+    @pytest.mark.parametrize("values", _NAN_NORM_CASES)
+    def test_propagates_nan(self, values: tuple[float, ...]) -> None:
+        assert math.isnan(tpp.vector_norm(values))
 
 
 class TestScaleInPlace:
@@ -268,6 +279,15 @@ class TestBackendEquivalence:
         expected = max_magnitude * math.sqrt(math.fsum((v / max_magnitude) ** 2 for v in values))
         assert expected == pytest.approx(float(np.linalg.norm(values)))
         assert _accel.vector_norm(values) == pytest.approx(expected)
+
+    @pytest.mark.unit
+    def test_fallback_norm_propagates_nan(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from template_python_project import _accel
+
+        monkeypatch.setattr(_accel, "_core", None)
+
+        for values in _NAN_NORM_CASES:
+            assert math.isnan(_accel.vector_norm(values))
 
 
 class TestExtensionImportFailures:

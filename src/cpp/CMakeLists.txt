@@ -21,5 +21,5 @@ tpp_add_extension(_core
 #
 set(_core_stub "${CMAKE_CURRENT_SOURCE_DIR}/../template_python_project/_core.pyi")
 if(EXISTS "${_core_stub}")
-    install(FILES "${_core_stub}" DESTINATION ${SKBUILD_PROJECT_NAME})
+    install(FILES "${_core_stub}" DESTINATION "${TPP_PYTHON_PACKAGE}")
 endif()

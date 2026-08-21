@@ -250,6 +250,28 @@ jobs:
           /tmp/sdist-venv/bin/python -m pip install dist/*.tar.gz
           /tmp/sdist-venv/bin/python -c "import template_python_project as t; print(t.__version__, t.backend_name())"
 
+      - name: Verify distinct distribution and import package names
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: "1"
+        run: |
+          derived_dir=$(mktemp -d)
+          wheel_dir=$(mktemp -d)
+          git archive --format=tar HEAD | tar -xf - -C "${derived_dir}"
+          "${derived_dir}/tailor_template_cleanup.sh" --apply --yes \
+            --root "${derived_dir}" --project-name demo-dist --package-name demo_pkg
+          python -m pip wheel --no-deps --wheel-dir "${wheel_dir}" "${derived_dir}"
+          python -m venv /tmp/tailored-venv
+          /tmp/tailored-venv/bin/python -m pip install "${wheel_dir}"/*.whl
+          /tmp/tailored-venv/bin/python - <<'PY'
+          from pathlib import Path
+
+          import demo_pkg
+
+          print(demo_pkg.backend_name())
+          assert demo_pkg.HAS_EXTENSION
+          assert (Path(demo_pkg.__file__).parent / "_core.pyi").is_file()
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: distributions
