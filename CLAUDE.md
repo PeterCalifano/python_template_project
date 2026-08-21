@@ -15,10 +15,8 @@ extension for wiring external C/C++ libraries. Uses a `src` layout,
 scikit-build-core as the PEP 517 backend, setuptools-scm for git-derived
 versioning, and CMake + pybind11 for the compiled part.
 
-The defining constraint: **`pip install .` is the only build entry point.**
-scikit-build-core drives CMake from inside PEP 517, so there is no separate
-compile step to run first. Anything that makes `pip install .` insufficient to
-get a working package is a regression, however convenient it seems.
+A clean `pip install .` must produce a working package. scikit-build-core
+drives CMake through PEP 517, so users do not run a separate compile step.
 
 ## Commands
 
@@ -54,9 +52,9 @@ python -m build && twine check --strict dist/*
 After the first `./build_ext.sh`, `editable.rebuild = true` recompiles changed
 C++ on the next import — the usual loop is just *edit, run tests*.
 
-If an install fails with the uninformative `failed-wheel-build-for-install`,
-the cached CMake build directory is usually stale — after a rebase, a branch
-switch, or a toolchain change. Run `./build_ext.sh --clean`.
+If an install reports `failed-wheel-build-for-install`, inspect the first CMake
+or compiler error above it. Use `./build_ext.sh --clean` only after a branch,
+toolchain, or build-directory ownership change makes the cache suspect.
 
 ## Architecture
 
@@ -176,8 +174,15 @@ Run these and paste real output:
 ruff check . && ruff format --check .
 mypy src tests
 pytest
-pip install -e . -C wheel.cmake=false && pytest   # fallback path
 python -m build && twine check --strict dist/*
+
+fallback_env_dir="$(mktemp -d)/venv"
+python -m venv "${fallback_env_dir}"
+"${fallback_env_dir}/bin/python" -m pip install --upgrade pip
+"${fallback_env_dir}/bin/python" -m pip install --group test . -C wheel.cmake=false
+"${fallback_env_dir}/bin/python" -c \
+    "import template_python_project as t; assert not t.HAS_EXTENSION"
+"${fallback_env_dir}/bin/python" -m pytest
 ```
 
 Do not report success for a command you did not run.

@@ -60,10 +60,10 @@ def backend_name() -> str:
         The name of the implementation currently in use.
 
     Example:
-        print(backend_name())
+        print(backend_name() in {"native", "python"})
 
     Output:
-        native
+        True
     """
     return "native" if HAS_EXTENSION else "python"
 

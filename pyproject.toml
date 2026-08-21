@@ -161,7 +161,7 @@ fallback_version = "0.0.0"
 
 [tool.pytest.ini_options]
 addopts = "--cov=template_python_project --cov-report=term-missing --cov-report=xml:coverage.xml --maxfail=10 -rf --strict-markers --strict-config"
-# ACHTUNG! Do NOT add `pythonpath = ["src"]` here.
+# Do not add `pythonpath = ["src"]` here.
 #
 # It is the usual advice for a pure-Python src layout, but it is wrong for a
 # package with a compiled extension: it puts the source tree ahead of the
@@ -235,9 +235,11 @@ ignore_missing_imports = true
 module = "template_python_project._accel"
 warn_unreachable = false
 
-# setuptools-scm generates this file; it is not ours to type-check.
+# setuptools-scm generates this file during builds. Ignore the absent module in
+# clean checkouts and its generated implementation after installation.
 [[tool.mypy.overrides]]
 module = "template_python_project._version"
+ignore_missing_imports = true
 ignore_errors = true
 
 [tool.ruff]
@@ -281,12 +283,8 @@ convention = "google"
 
 [tool.ruff.format]
 docstring-code-format = true
-# Ruff >= 0.16 also formats Python blocks inside Markdown. Documentation
-# snippets are illustrative prose, not compiled code, and AGENTS.md is a
-# hand-written document shared across machines -- reformatting it here would
-# produce spurious diffs and conflicts. Lint still applies; only the formatter
-# is scoped out.
-exclude = ["*.md"]
+# AGENTS.md is a protected repository instruction file.
+exclude = ["AGENTS.md"]
 
 # ---------------------------------------------------------------------------
 # Binary wheel building
