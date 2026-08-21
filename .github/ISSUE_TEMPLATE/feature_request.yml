@@ -1,51 +1,53 @@
 name: Feature request
-description: Suggest an addition or change to the template
-labels: ["enhancement"]
+description: Propose a scoped improvement to the Python template, extension, docs, or automation.
+title: "[FEATURE] "
+labels:
+  - enhancement
+assignees:
+  - PeterCalifano
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem
-      description: What is hard or impossible today? Describe the situation, not the solution.
+      label: Problem or missing capability
+      description: Explain the current limitation and who is affected.
     validations:
       required: true
-
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Owning surface
+      options:
+        - Python API or fallback
+        - pybind11 or CMake extension
+        - External library wiring
+        - Versioning or packaging
+        - Documentation or GitHub Pages
+        - CI or release workflow
+        - Container or dev container
+        - Template tailoring
+        - Contribution templates
+    validations:
+      required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed change
-      description: What you would like the template to do instead.
+      label: Proposed solution
+      description: Describe the intended behavior, APIs, files, or workflow stages.
     validations:
       required: true
-
-  - type: dropdown
-    id: area
+  - type: textarea
+    id: validation
     attributes:
-      label: Area
-      options:
-        - Packaging / pyproject.toml
-        - pybind11 extension or CMake
-        - External library wiring
-        - Tests
-        - Documentation
-        - CI/CD
-        - Containers / devcontainer
-        - Tailoring script
-        - Other
+      label: Validation plan
+      description: List the tests, package checks, docs build, or workflow checks that should prove the change.
+      render: text
     validations:
       required: true
-
   - type: textarea
     id: alternatives
     attributes:
       label: Alternatives considered
-      description: Other approaches you weighed, and why you set them aside.
-
-  - type: checkboxes
-    id: scope
-    attributes:
-      label: Scope check
-      description: |
-        This is a template, so additions are carried by every derived project.
-      options:
-        - label: This belongs in the template itself, not in a project derived from it.
+      description: Note simpler, narrower, or rejected approaches if relevant.
+    validations:
+      required: false

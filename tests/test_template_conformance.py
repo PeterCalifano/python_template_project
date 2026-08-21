@@ -15,9 +15,10 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
+import yaml
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -30,6 +31,8 @@ PYPROJECT = REPO_ROOT / "pyproject.toml"
 TAILOR_SCRIPT = REPO_ROOT / "tailor_template_cleanup.sh"
 TEMPLATE_NAME = "template_python_project"
 TEMPLATE_WORKSPACE = "python_template_project.code-workspace"
+ISSUE_TEMPLATE_DIR = REPO_ROOT / ".github" / "ISSUE_TEMPLATE"
+PULL_REQUEST_TEMPLATE = REPO_ROOT / ".github" / "pull_request_template.md"
 
 
 @pytest.fixture(scope="module")
@@ -156,6 +159,53 @@ class TestExtensionContract:
         content = (REPO_ROOT / "cmake" / "HandleExternalLibs.cmake").read_text()
         for pattern in ("find_package", "FetchContent", "add_subdirectory"):
             assert pattern in content, f"wiring pattern not documented: {pattern}"
+
+
+class TestContributionTemplates:
+    """Contribution forms must remain valid and specific to this repository."""
+
+    @pytest.mark.unit
+    @pytest.mark.parametrize(
+        ("filename", "expected_label"),
+        [("bug_report.yml", "bug"), ("feature_request.yml", "enhancement")],
+    )
+    def test_issue_forms_are_valid(self, filename: str, expected_label: str) -> None:
+        form = _load_yaml(ISSUE_TEMPLATE_DIR / filename)
+
+        assert form["labels"] == [expected_label]
+        body = cast(list[dict[str, Any]], form["body"])
+        ids = [str(item["id"]) for item in body]
+        assert len(ids) == len(set(ids)), f"duplicate IDs in {filename}"
+
+        dropdowns = [item for item in body if item.get("type") == "dropdown"]
+        for dropdown in dropdowns:
+            attributes = cast(dict[str, Any], dropdown["attributes"])
+            options = cast(list[str], attributes["options"])
+            assert options
+            assert all(option.strip() for option in options)
+
+    @pytest.mark.unit
+    def test_contact_links_target_this_repository(self) -> None:
+        config = _load_yaml(ISSUE_TEMPLATE_DIR / "config.yml")
+        contacts = cast(list[dict[str, Any]], config["contact_links"])
+
+        assert contacts
+        for contact in contacts:
+            assert str(contact["url"]).startswith(
+                "https://github.com/PeterCalifano/python_template_project/"
+            )
+
+    @pytest.mark.unit
+    def test_pull_request_template_stays_concise(self) -> None:
+        content = PULL_REQUEST_TEMPLATE.read_text()
+
+        for heading in (
+            "## Summary",
+            "## Main Changes",
+            "## Testing / Validation",
+            "## Notes For Reviewers",
+        ):
+            assert heading in content
 
 
 class TestTailoringScript:
@@ -388,6 +438,11 @@ def _copy_template(destination: Path, *, initialize_git: bool = False) -> Path:
         )
 
     return destination
+
+
+def _load_yaml(path: Path) -> dict[str, Any]:
+    """Load a YAML mapping used by a GitHub contribution form."""
+    return cast(dict[str, Any], yaml.safe_load(path.read_text()))
 
 
 _TEXT_SUFFIXES = {

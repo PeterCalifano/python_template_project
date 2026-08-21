@@ -71,6 +71,9 @@ cuda = [
 test = [
     "pytest>=8.3",
     "pytest-cov>=5.0",
+    # Template conformance parses GitHub issue forms; mypy also checks the tests.
+    "pyyaml>=6.0",
+    "types-pyyaml>=6.0",
     # tomllib entered the stdlib in 3.11; the test suite reads pyproject.toml.
     "tomli>=2.0; python_version < '3.11'",
 ]

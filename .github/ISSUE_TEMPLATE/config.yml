@@ -2,7 +2,7 @@ blank_issues_enabled: false
 contact_links:
   - name: Template usage guide
     url: https://github.com/PeterCalifano/python_template_project/blob/main/doc/template_usage.md
-    about: How to rename the package, tailor the template, and strip what you do not need.
-  - name: Extension and external-library guide
+    about: Check the renaming, tailoring, dependency, and publishing guidance first.
+  - name: Extension guide
     url: https://github.com/PeterCalifano/python_template_project/blob/main/doc/extensions.md
-    about: Read this before opening an issue about pybind11, CMake, or wiring a C/C++ library.
+    about: Check the pybind11, CMake, fallback, and external-library guidance first.
