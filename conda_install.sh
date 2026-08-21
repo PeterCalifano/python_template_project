@@ -69,16 +69,17 @@ fi
 conda activate "$env_name"
 python -m pip install --upgrade pip
 
-extras="dev"
+install_args=(--group dev)
 if [[ $install_docs -eq 1 ]]; then
-  extras="dev,docs"
+  install_args+=(--group docs)
 fi
 
 if [[ $editable_mode -eq 1 ]]; then
-  python -m pip install -e ".[${extras}]"
-else
-  python -m pip install ".[${extras}]"
+  install_args+=(-e)
 fi
+install_args+=(.)
+
+python -m pip install "${install_args[@]}"
 
 echo "Installed template_python_project into conda env '${env_name}'."
 echo "Optional GPU or Jetson-specific setup should be added in project-specific scripts under examples/."

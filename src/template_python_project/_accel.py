@@ -7,7 +7,8 @@ dispatches to whichever implementation is available.
 
 Two properties make this worth the indirection:
 
-* A pure-Python consumer never sees an :exc:`ImportError` for a missing binary.
+* A pure-Python consumer never sees an :exc:`ImportError` when no binary was built.
+* A present but broken binary still reports its original import failure.
 * The pure-Python fallbacks double as an executable specification of what the
   C++ is supposed to do, which is what :mod:`tests.test_extension` checks.
 
@@ -23,12 +24,14 @@ Output:
 from __future__ import annotations
 
 import math
+from importlib.util import find_spec
 from typing import TYPE_CHECKING, Final
+
+import numpy as np
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    import numpy as np
     import numpy.typing as npt
 
 __all__ = [
@@ -39,10 +42,12 @@ __all__ = [
     "vector_norm",
 ]
 
-try:
+if TYPE_CHECKING:
     from . import _core
-except ImportError:  # pragma: no cover - depends on how the package was built
-    _core = None  # type: ignore[assignment]
+elif find_spec(f"{__package__}._core") is None:
+    _core = None
+else:
+    from . import _core
 
 #: ``True`` when the compiled extension is available for this installation.
 HAS_EXTENSION: Final[bool] = _core is not None
@@ -113,7 +118,7 @@ def scale_in_place(array: npt.NDArray[np.float64], factor: float) -> None:
         factor: The scalar multiplier.
 
     Raises:
-        ValueError: If the array is not 1-D, not C-contiguous, or read-only.
+        ValueError: If the array is not float64, 1-D, C-contiguous, or writable.
 
     Example:
         import numpy as np
@@ -129,6 +134,8 @@ def scale_in_place(array: npt.NDArray[np.float64], factor: float) -> None:
         _core.scale_in_place(array, factor)
         return
 
+    if array.dtype != np.dtype(np.float64):
+        raise ValueError("expected a float64 array")
     if array.ndim != 1:
         raise ValueError("expected a 1-dimensional array")
     if not array.flags["C_CONTIGUOUS"]:

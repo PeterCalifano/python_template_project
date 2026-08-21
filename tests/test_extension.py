@@ -14,12 +14,18 @@ drift away from the C++ it stands in for.
 from __future__ import annotations
 
 import math
-from typing import ClassVar
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import ClassVar, cast
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 import template_python_project as tpp
+from template_python_project import _accel
 from template_python_project._accel import _PythonRunningStatistics
 
 # Skips every native test in one place when the extension was not built.
@@ -113,6 +119,20 @@ class TestScaleInPlace:
         data = np.arange(10, dtype=np.float64)[::2]
         with pytest.raises(ValueError, match="contiguous"):
             tpp.scale_in_place(data, 2.0)
+
+    @pytest.mark.unit
+    def test_rejects_wrong_dtype_without_mutation(self) -> None:
+        for dtype in (np.int64, np.float32):
+            data = np.array([1, 2, 3], dtype=dtype)
+            original = data.copy()
+
+            # Exercise runtime validation even though typed callers should
+            # already provide float64 arrays.
+            typed_data = cast(npt.NDArray[np.float64], data)
+            with pytest.raises(ValueError, match="float64"):
+                tpp.scale_in_place(typed_data, 2.0)
+
+            np.testing.assert_array_equal(data, original)
 
     @pytest.mark.unit
     def test_rejects_readonly_array(self) -> None:
@@ -248,6 +268,32 @@ class TestBackendEquivalence:
         expected = max_magnitude * math.sqrt(math.fsum((v / max_magnitude) ** 2 for v in values))
         assert expected == pytest.approx(float(np.linalg.norm(values)))
         assert _accel.vector_norm(values) == pytest.approx(expected)
+
+
+class TestExtensionImportFailures:
+    """Only an absent extension may activate the Python fallback."""
+
+    @pytest.mark.unit
+    def test_broken_extension_import_is_not_silenced(self, tmp_path: Path) -> None:
+        package = tmp_path / "broken_accel_package"
+        package.mkdir()
+        (package / "__init__.py").write_text("")
+        (package / "_accel.py").write_text(Path(_accel.__file__).read_text())
+        (package / "_core.py").write_text('raise ImportError("broken native extension")\n')
+
+        # Import in a subprocess so the deliberately broken module cannot
+        # contaminate this test process's module cache.
+        environment = {**os.environ, "PYTHONPATH": str(tmp_path)}
+        result = subprocess.run(
+            [sys.executable, "-c", "import broken_accel_package._accel"],
+            capture_output=True,
+            text=True,
+            env=environment,
+            check=False,
+        )
+
+        assert result.returncode != 0
+        assert "broken native extension" in result.stderr
 
 
 class TestExtensionMetadata:

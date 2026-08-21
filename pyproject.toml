@@ -227,12 +227,10 @@ exclude = [
 module = "template_python_project._core"
 ignore_missing_imports = true
 
-# _accel.py deliberately guards `from . import _core` with try/except so the
-# package imports without the extension. Because _core.pyi always exists,
-# mypy statically concludes the import cannot fail and marks every fallback
-# branch unreachable. That conclusion is a stub artifact, not a fact about
-# runtime -- tests/test_extension.py exercises those branches for real -- so
-# the check is disabled here and only here.
+# _accel.py uses a runtime module-spec check because _core.pyi exists even when
+# the binary was not built. Mypy therefore treats _core as always present and
+# marks the fallback unreachable. Tests exercise both runtime branches, so the
+# check is disabled here and only here.
 [[tool.mypy.overrides]]
 module = "template_python_project._accel"
 warn_unreachable = false

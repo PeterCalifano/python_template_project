@@ -27,15 +27,18 @@ namespace {
 
 /// Multiply a NumPy array in place, without copying its buffer.
 ///
-/// The `py::array::c_style | py::array::forcecast` flags would silently copy a
-/// non-contiguous or wrong-dtype input, which would make an "in place"
-/// function quietly do nothing to the caller's array. So we take a bare
-/// py::array_t<double> and validate instead of converting -- surprising the
-/// caller with a clear error beats surprising them with a silent no-op.
-void scale_array_in_place(py::array_t<double> array, const double factor) {
-    // request(true) asks for writable access and throws if the array is
-    // read-only, which is exactly the check we want.
-    py::buffer_info info = array.request(true);
+/// Accept the untyped array without conversion so validation cannot create a
+/// temporary buffer and turn an in-place operation into a silent no-op.
+void scale_array_in_place(py::array array, const double factor) {
+    if (!array.dtype().is(py::dtype::of<double>())) {
+        throw std::invalid_argument("expected a float64 array");
+    }
+
+    if (!array.writeable()) {
+        throw std::invalid_argument("buffer source array is read-only");
+    }
+
+    py::buffer_info info = array.request();
 
     if (info.ndim != 1) {
         throw std::invalid_argument("expected a 1-dimensional array");
@@ -109,7 +112,7 @@ PYBIND11_MODULE(_core, m) {
 
     m.def("scale_in_place",
           &scale_array_in_place,
-          py::arg("array"),
+          py::arg("array").noconvert(),
           py::arg("factor"),
           R"pbdoc(
         Multiply a 1-D float64 NumPy array in place by ``factor``.
@@ -122,7 +125,7 @@ PYBIND11_MODULE(_core, m) {
             factor: The scalar multiplier.
 
         Raises:
-            ValueError: If the array is not 1-D, not C-contiguous, or read-only.
+            ValueError: If the array is not float64, 1-D, C-contiguous, or writable.
     )pbdoc");
 
     // ---- Bound class ------------------------------------------------------
