@@ -1,5 +1,40 @@
 # Agents instructions
 
+## Superpowers usage
+
+Use Superpowers selectively. Prefer the lightest workflow appropriate for the task. Simple,
+unitary, direct tasks can be carried out without any loaded skill.
+
+- **Simple/local changes:** work directly. Inspect --> edit --> test --> verify. Do not invoke
+  Superpowers unnecessarily.
+- **Normal features/refactors:** use only relevant skills when they add value, especially
+  testing, debugging, and verification.
+- **Complex, ambiguous, architectural, or high-risk work:** use the full relevant Superpowers
+  workflow, including design/planning before implementation when appropriate.
+- **Unknown-cause bugs:** use systematic debugging before proposing fixes.
+- **Verification:** always verify implementation work when technically possible. Run relevant
+  tests/builds/checks and inspect the final diff.
+- **TDD:** use when tests provide a meaningful specification; do not force it for
+  trivial/mechanical changes.
+- **Subagents:** use only for meaningfully independent or parallelizable work. Avoid unnecessary
+  context duplication.
+- **Worktrees:** use only when isolation or parallel work provides a concrete benefit.
+- Escalate to a heavier workflow if inspection reveals unexpected complexity; simplify if the
+  task proves straightforward.
+- Do not create commits, push, or open PRs unless explicitly requested.
+
+Optional user overrides:
+
+- `SP:off` - no Superpowers.
+- `SP:auto` - choose automatically (default).
+- `SP:focused` - only directly relevant skills.
+- `SP:full` - full relevant workflow.
+- `SP:debug` - systematic debugging.
+- `SP:plan` - investigate and plan only; do not implement.
+
+Superpowers should improve engineering quality, not add process for its own sake. Avoid redundant
+skill calls, repeated exploration, unnecessary planning, and unnecessary subagents.
+
 ## Language and programming standards
 
 ### Language-agnostic software engineering guidelines
